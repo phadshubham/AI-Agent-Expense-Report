@@ -1,0 +1,9 @@
+date,description,merchant,amount,category,receipt_status,employee,payment_method
+2026-08-05,Flight to Delhi,IndiGo,6500,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-05,Airport Taxi to Hotel,Ola,850,Transport,Available,Ravi Kumar,UPI
+2026-08-06,Hotel Stay - Delhi,Marriott,4200,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-08-06,Dinner with Client,The Grand Restaurant,750,Meals,Available,Ravi Kumar,Cash
+2026-08-07,Local Cab to Office,Uber,350,Transport,Available,Ravi Kumar,UPI
+2026-08-07,Lunch Meeting,Olive Bistro,620,Meals,Available,Ravi Kumar,Corporate Card
+2026-08-08,Return Flight to Bangalore,IndiGo,7200,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-12,Airport Taxi,Ola,900,Transport,Missing,Ravi Kumar,Cash

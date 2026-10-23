@@ -1,0 +1,7 @@
+date,description,merchant,amount,category,receipt_status,employee,payment_method
+2026-08-25,Tech Conference Ticket,AI Summit 2026,4500,Other,Available,Ravi Kumar,Corporate Card
+2026-08-25,Flight to Bangalore,IndiGo,4800,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-26,Hotel Booking,The Leela,6800,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-08-26,Networking Dinner,Karavalli,2100,Meals,Available,Ravi Kumar,Corporate Card
+2026-08-27,Local Transport,Uber,450,Transport,Available,Ravi Kumar,UPI
+2026-08-27,Team Refreshments,Starbucks,680,Meals,Missing,Ravi Kumar,Cash

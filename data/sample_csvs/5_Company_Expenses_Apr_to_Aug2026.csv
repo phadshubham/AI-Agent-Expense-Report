@@ -1,0 +1,171 @@
+date,description,merchant,amount,category,receipt_status,employee,payment_method
+2026-04-01,Cab to Client Office Mumbai,Uber,350,Transport,Available,Vikram Singh,Corporate Card
+2026-04-02,Flight to Pune,IndiGo,4800,Flight,Available,Amit Patel,Corporate Card
+2026-04-02,Airport Cab in Pune,BluSmart,350,Transport,Available,Ravi Kumar,UPI
+2026-04-03,Workshop Materials,Airport Lounge,4500,Other,Available,Vikram Singh,Corporate Card
+2026-04-03,Cab to Client Office Chennai,City Taxi,350,Transport,Available,Priya Sharma,Corporate Card
+2026-04-04,Hotel to Meeting Cab,City Taxi,680,Transport,Missing,Amit Patel,Corporate Card
+2026-04-05,Cab to Client Office Pune,BluSmart,850,Transport,Available,Priya Sharma,Corporate Card
+2026-04-06,Hotel Stay Mumbai,Marriott,5800,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-04-07,Workshop Materials,AWS Community Day,4500,Other,Available,Sneha Reddy,Corporate Card
+2026-04-08,Flight to Delhi,Vistara,4800,Flight,Available,Priya Sharma,Corporate Card
+2026-04-10,Hotel Stay Chennai,Lemon Tree,7200,Accommodation,Available,Amit Patel,Corporate Card
+2026-04-13,Flight to Hyderabad,Vistara,8200,Flight,Available,Priya Sharma,Corporate Card
+2026-04-16,Flight to Bangalore,Vistara,5600,Flight,Available,Sneha Reddy,Corporate Card
+2026-04-16,Flight to Hyderabad,IndiGo,5200,Flight,Available,Priya Sharma,Corporate Card
+2026-04-17,Flight to Chennai,Akasa Air,5600,Flight,Available,Ravi Kumar,Corporate Card
+2026-04-17,Team Lunch,Punjab Grill,1650,Meals,Available,Ravi Kumar,Corporate Card
+2026-04-18,Flight to Pune,Akasa Air,5600,Flight,Available,Ravi Kumar,Corporate Card
+2026-04-20,Flight to Delhi,Akasa Air,6800,Flight,Available,Ravi Kumar,Corporate Card
+2026-04-21,Conference Registration,Airport Lounge,3500,Other,Available,Amit Patel,Corporate Card
+2026-04-22,Hotel to Meeting Cab,Uber,420,Transport,Missing,Vikram Singh,UPI
+2026-04-23,Hotel Stay Mumbai,The Leela,4500,Accommodation,Available,Priya Sharma,Corporate Card
+2026-04-24,Hotel Stay Delhi,Lemon Tree,4500,Accommodation,Available,Priya Sharma,Corporate Card
+2026-04-25,Flight to Pune,IndiGo,6800,Flight,Available,Ravi Kumar,Corporate Card
+2026-04-26,Hotel Stay Hyderabad,Hyatt Regency,3800,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-04-26,Team Lunch,Mainland China,1650,Meals,Available,Ravi Kumar,Cash
+2026-04-26,Client Dinner,Punjab Grill,2100,Meals,Available,Ravi Kumar,UPI
+2026-05-02,Cab to Client Office Delhi,BluSmart,680,Transport,Available,Sneha Reddy,UPI
+2026-05-04,Flight to Chennai,Air India,4200,Flight,Available,Ravi Kumar,Corporate Card
+2026-05-05,Workshop Materials,AWS Community Day,3500,Other,Available,Ravi Kumar,Corporate Card
+2026-05-05,Flight to Bangalore,IndiGo,6800,Flight,Available,Vikram Singh,Corporate Card
+2026-05-06,Hotel Stay Pune,Radisson Blu,5200,Accommodation,Available,Amit Patel,Corporate Card
+2026-05-07,Airport Cab in Chennai,BluSmart,1100,Transport,Available,Ravi Kumar,Corporate Card
+2026-05-08,Hotel Stay Mumbai,Radisson Blu,7200,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-05-09,Flight to Hyderabad,Akasa Air,4200,Flight,Available,Amit Patel,Corporate Card
+2026-05-10,Hotel Stay Delhi,Marriott,5800,Accommodation,Available,Vikram Singh,Corporate Card
+2026-05-10,Local Transport,Ola,950,Transport,Available,Priya Sharma,Corporate Card
+2026-05-13,Hotel Stay Delhi,The Leela,5200,Accommodation,Available,Priya Sharma,Corporate Card
+2026-05-14,Client Dinner,Karavalli,2800,Meals,Available,Vikram Singh,Corporate Card
+2026-05-14,Workshop Materials,AI Expo,2500,Other,Available,Sneha Reddy,Corporate Card
+2026-05-14,Team Lunch,Barbeque Nation,680,Meals,Available,Sneha Reddy,UPI
+2026-05-16,Team Lunch,Olive Bistro,850,Meals,Available,Sneha Reddy,UPI
+2026-05-17,Hotel Stay Delhi,Marriott,7200,Accommodation,Available,Amit Patel,Corporate Card
+2026-05-18,Flight to Hyderabad,Akasa Air,5200,Flight,Available,Sneha Reddy,Corporate Card
+2026-05-19,Hotel to Meeting Cab,City Taxi,680,Transport,Available,Ravi Kumar,Corporate Card
+2026-05-20,Conference Registration,AI Expo,3500,Other,Available,Ravi Kumar,Corporate Card
+2026-05-20,Conference Registration,AWS Community Day,1500,Other,Available,Amit Patel,Corporate Card
+2026-05-20,Airport Cab in Hyderabad,BluSmart,550,Transport,Available,Vikram Singh,UPI
+2026-05-21,Local Transport,Uber,350,Transport,Available,Amit Patel,Cash
+2026-05-24,Coffee & Refreshments,Olive Bistro,1200,Meals,Available,Priya Sharma,UPI
+2026-05-24,Networking Dinner,Trishna Restaurant,850,Meals,Available,Amit Patel,Cash
+2026-05-26,Client Dinner,Starbucks,2100,Meals,Available,Ravi Kumar,Cash
+2026-05-27,Hotel Stay Pune,Hyatt Regency,5800,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-05-27,Networking Dinner,Mainland China,680,Meals,Available,Priya Sharma,Corporate Card
+2026-05-28,Flight to Hyderabad,Air India,5600,Flight,Available,Vikram Singh,Corporate Card
+2026-05-30,Hotel Stay Chennai,Radisson Blu,5200,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-05-30,Hotel Stay Bangalore,Radisson Blu,3800,Accommodation,Available,Amit Patel,Corporate Card
+2026-05-31,Client Dinner,Olive Bistro,2100,Meals,Available,Priya Sharma,UPI
+2026-05-31,Conference Registration,Airport Lounge,3500,Other,Available,Priya Sharma,Corporate Card
+2026-06-01,Working Lunch,Mainland China,680,Meals,Available,Ravi Kumar,UPI
+2026-06-01,Coffee & Refreshments,Punjab Grill,450,Meals,Available,Vikram Singh,UPI
+2026-06-02,Hotel to Meeting Cab,Ola,1100,Transport,Available,Priya Sharma,Cash
+2026-06-02,Workshop Materials,Tech Summit 2026,1500,Other,Available,Vikram Singh,Corporate Card
+2026-06-03,Hotel Stay Bangalore,Lemon Tree,5800,Accommodation,Available,Priya Sharma,Corporate Card
+2026-06-05,Flight to Hyderabad,Air India,5600,Flight,Available,Sneha Reddy,Corporate Card
+2026-06-08,Client Dinner,Punjab Grill,680,Meals,Available,Priya Sharma,Cash
+2026-06-08,Hotel Stay Bangalore,Lemon Tree,3800,Accommodation,Available,Amit Patel,Corporate Card
+2026-06-09,Networking Dinner,Olive Bistro,1200,Meals,Available,Amit Patel,Corporate Card
+2026-06-11,Flight to Bangalore,Vistara,7400,Flight,Available,Sneha Reddy,Corporate Card
+2026-06-12,Local Transport,Uber,850,Transport,Available,Priya Sharma,Corporate Card
+2026-06-13,Coffee & Refreshments,Mainland China,1200,Meals,Available,Amit Patel,Corporate Card
+2026-06-14,Flight to Hyderabad,Akasa Air,4200,Flight,Available,Sneha Reddy,Corporate Card
+2026-06-15,Hotel Stay Mumbai,Radisson Blu,5200,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-06-16,Hotel Stay Mumbai,Radisson Blu,7200,Accommodation,Available,Vikram Singh,Corporate Card
+2026-06-16,Flight to Bangalore,Akasa Air,5200,Flight,Available,Vikram Singh,Corporate Card
+2026-06-18,Hotel to Meeting Cab,City Taxi,420,Transport,Available,Priya Sharma,Corporate Card
+2026-06-19,Airport Terminal Lounge,AWS Community Day,2500,Other,Available,Sneha Reddy,Corporate Card
+2026-06-20,Hotel Stay Mumbai,Radisson Blu,5200,Accommodation,Available,Priya Sharma,Corporate Card
+2026-06-20,Flight to Mumbai,Akasa Air,4800,Flight,Available,Ravi Kumar,Corporate Card
+2026-06-20,Airport Cab in Chennai,Ola,550,Transport,Available,Ravi Kumar,UPI
+2026-06-23,Flight to Pune,Air India,4800,Flight,Available,Priya Sharma,Corporate Card
+2026-06-23,Coffee & Refreshments,Olive Bistro,2800,Meals,Available,Ravi Kumar,UPI
+2026-06-25,Flight to Hyderabad,Air India,7400,Flight,Available,Amit Patel,Corporate Card
+2026-06-25,Team Lunch,Barbeque Nation,1200,Meals,Available,Ravi Kumar,Corporate Card
+2026-06-25,Flight to Mumbai,Air India,4200,Flight,Available,Amit Patel,Corporate Card
+2026-06-27,Hotel Stay Mumbai,Lemon Tree,6500,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-06-28,Working Lunch,Blue Tokai,450,Meals,Available,Ravi Kumar,Cash
+2026-06-28,Hotel Stay Delhi,The Leela,5800,Accommodation,Available,Vikram Singh,Corporate Card
+2026-06-30,Hotel Stay Chennai,Taj Hotels,5800,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-07-01,Flight to Chennai,IndiGo,6100,Flight,Available,Vikram Singh,Corporate Card
+2026-07-02,Airport Terminal Lounge,AI Expo,4500,Other,Available,Sneha Reddy,Corporate Card
+2026-07-02,Flight to Pune,Vistara,4800,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-02,Flight to Chennai,Vistara,8200,Flight,Available,Amit Patel,Corporate Card
+2026-07-03,Cab to Client Office Bangalore,City Taxi,350,Transport,Available,Amit Patel,Corporate Card
+2026-07-04,Cab to Client Office Chennai,Ola,420,Transport,Available,Ravi Kumar,Corporate Card
+2026-07-04,Networking Dinner,Blue Tokai,1200,Meals,Available,Amit Patel,Cash
+2026-07-05,Client Dinner,Punjab Grill,680,Meals,Available,Priya Sharma,Cash
+2026-07-06,Hotel Stay Bangalore,The Leela,5200,Accommodation,Available,Priya Sharma,Corporate Card
+2026-07-06,Flight to Hyderabad,Akasa Air,6100,Flight,Available,Priya Sharma,Corporate Card
+2026-07-08,Flight to Hyderabad,Air India,7400,Flight,Available,Vikram Singh,Corporate Card
+2026-07-09,Networking Dinner,Punjab Grill,1650,Meals,Missing,Ravi Kumar,Corporate Card
+2026-07-09,Flight to Chennai,Air India,6800,Flight,Available,Sneha Reddy,Corporate Card
+2026-07-11,Networking Dinner,Blue Tokai,680,Meals,Available,Sneha Reddy,Cash
+2026-07-11,Hotel Stay Hyderabad,The Leela,7200,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-07-12,Flight to Delhi,Air India,6100,Flight,Available,Sneha Reddy,Corporate Card
+2026-07-13,Hotel Stay Pune,Radisson Blu,7200,Accommodation,Available,Amit Patel,Corporate Card
+2026-07-13,Client Meeting Room,Airport Lounge,1500,Other,Available,Amit Patel,Corporate Card
+2026-07-14,Flight to Pune,Vistara,8200,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-14,Hotel Stay Chennai,Marriott,4500,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-07-15,Hotel Stay Chennai,Lemon Tree,5200,Accommodation,Available,Amit Patel,Corporate Card
+2026-07-15,Coffee & Refreshments,Trishna Restaurant,850,Meals,Available,Amit Patel,UPI
+2026-07-16,Hotel to Meeting Cab,Uber,350,Transport,Available,Priya Sharma,Cash
+2026-07-18,Local Transport,BluSmart,950,Transport,Available,Vikram Singh,Cash
+2026-07-19,Flight to Mumbai,Akasa Air,8200,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-20,Workshop Materials,AI Expo,3500,Other,Available,Sneha Reddy,Corporate Card
+2026-07-20,Flight to Hyderabad,Vistara,6100,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-22,Hotel Stay Delhi,Taj Hotels,5200,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-07-22,Flight to Mumbai,Air India,4800,Flight,Available,Priya Sharma,Corporate Card
+2026-07-23,Flight to Chennai,Vistara,8200,Flight,Available,Priya Sharma,Corporate Card
+2026-07-24,Hotel Stay Pune,Hyatt Regency,7200,Accommodation,Available,Amit Patel,Corporate Card
+2026-07-24,Local Transport,Uber,1100,Transport,Available,Sneha Reddy,UPI
+2026-07-27,Hotel to Meeting Cab,Uber,680,Transport,Available,Priya Sharma,Corporate Card
+2026-07-27,Hotel Stay Delhi,Taj Hotels,5200,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-07-28,Hotel Stay Hyderabad,Marriott,5800,Accommodation,Available,Sneha Reddy,Corporate Card
+2026-07-30,Hotel Stay Pune,Taj Hotels,7200,Accommodation,Available,Priya Sharma,Corporate Card
+2026-07-31,Hotel Stay Hyderabad,Radisson Blu,4500,Accommodation,Available,Amit Patel,Corporate Card
+2026-07-31,Flight to Hyderabad,IndiGo,4800,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-01,Workshop Materials,AI Expo,3500,Other,Available,Amit Patel,Corporate Card
+2026-08-01,Airport Cab in Chennai,City Taxi,1100,Transport,Available,Ravi Kumar,Cash
+2026-08-02,Hotel Stay Delhi,The Leela,5200,Accommodation,Available,Vikram Singh,Corporate Card
+2026-08-03,Hotel Stay Bangalore,Marriott,5800,Accommodation,Available,Amit Patel,Corporate Card
+2026-08-03,Hotel Stay Bangalore,The Leela,6500,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-08-04,Flight to Pune,Air India,7400,Flight,Available,Vikram Singh,Corporate Card
+2026-08-05,Flight to Bangalore,Vistara,7400,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-06,Flight to Pune,Vistara,6100,Flight,Available,Sneha Reddy,Corporate Card
+2026-08-08,Hotel to Meeting Cab,Uber,550,Transport,Available,Sneha Reddy,Corporate Card
+2026-08-08,Cab to Client Office Bangalore,Ola,850,Transport,Available,Ravi Kumar,Cash
+2026-08-09,Local Transport,Ola,350,Transport,Available,Sneha Reddy,Cash
+2026-08-10,Working Lunch,Starbucks,1200,Meals,Available,Vikram Singh,UPI
+2026-08-10,Cab to Client Office Delhi,Uber,350,Transport,Available,Ravi Kumar,Cash
+2026-08-11,Hotel to Meeting Cab,City Taxi,550,Transport,Available,Ravi Kumar,UPI
+2026-08-12,Hotel Stay Mumbai,Lemon Tree,5800,Accommodation,Available,Priya Sharma,Corporate Card
+2026-08-12,Local Transport,Uber,1100,Transport,Available,Ravi Kumar,Corporate Card
+2026-08-15,Cab to Client Office Hyderabad,Ola,1100,Transport,Available,Vikram Singh,UPI
+2026-08-15,Working Lunch,Blue Tokai,450,Meals,Available,Priya Sharma,Corporate Card
+2026-08-17,Team Lunch,Trishna Restaurant,2800,Meals,Available,Ravi Kumar,UPI
+2026-08-18,Flight to Hyderabad,IndiGo,5600,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-18,Flight to Bangalore,Vistara,7400,Flight,Available,Priya Sharma,Corporate Card
+2026-08-19,Hotel Stay Delhi,Taj Hotels,3800,Accommodation,Available,Vikram Singh,Corporate Card
+2026-08-19,Cab to Client Office Mumbai,Ola,350,Transport,Available,Sneha Reddy,Corporate Card
+2026-08-19,Hotel Stay Hyderabad,Radisson Blu,5200,Accommodation,Available,Priya Sharma,Corporate Card
+2026-08-20,Working Lunch,Punjab Grill,680,Meals,Available,Priya Sharma,Cash
+2026-08-20,Cab to Client Office Hyderabad,Ola,680,Transport,Available,Vikram Singh,Corporate Card
+2026-08-22,Conference Registration,Airport Lounge,1500,Other,Available,Priya Sharma,Corporate Card
+2026-08-23,Hotel Stay Hyderabad,Taj Hotels,4500,Accommodation,Available,Vikram Singh,Corporate Card
+2026-08-23,Hotel Stay Delhi,The Leela,7200,Accommodation,Available,Priya Sharma,Corporate Card
+2026-08-24,Team Lunch,Olive Bistro,2100,Meals,Missing,Amit Patel,UPI
+2026-08-25,Hotel to Meeting Cab,Ola,950,Transport,Available,Amit Patel,Cash
+2026-08-26,Coffee & Refreshments,Barbeque Nation,2800,Meals,Available,Amit Patel,Corporate Card
+2026-08-26,Hotel Stay Pune,The Leela,7200,Accommodation,Available,Vikram Singh,Corporate Card
+2026-08-26,Flight to Delhi,Air India,5600,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-27,Client Dinner,Starbucks,1200,Meals,Available,Amit Patel,UPI
+2026-08-27,Flight to Hyderabad,Vistara,6800,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-27,Airport Cab in Bangalore,Ola,680,Transport,Available,Priya Sharma,UPI
+2026-08-28,Hotel to Meeting Cab,City Taxi,350,Transport,Available,Ravi Kumar,UPI
+2026-08-28,Hotel to Meeting Cab,Uber,850,Transport,Available,Amit Patel,UPI
+2026-08-28,Hotel to Meeting Cab,BluSmart,350,Transport,Missing,Priya Sharma,Cash
+2026-08-30,Hotel Stay Chennai,Taj Hotels,3800,Accommodation,Available,Amit Patel,Corporate Card
+2026-08-30,Team Lunch,Blue Tokai,450,Meals,Available,Amit Patel,Corporate Card
+2026-08-31,Hotel Stay Pune,Marriott,5800,Accommodation,Available,Priya Sharma,Corporate Card
+2026-08-31,Cab to Client Office Pune,Uber,950,Transport,Available,Ravi Kumar,Cash

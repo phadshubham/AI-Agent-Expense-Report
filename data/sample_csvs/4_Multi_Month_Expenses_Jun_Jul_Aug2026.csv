@@ -1,0 +1,20 @@
+date,description,merchant,amount,category,receipt_status,employee,payment_method
+2026-06-10,Flight to Pune,IndiGo,4200,Flight,Available,Ravi Kumar,Corporate Card
+2026-06-10,Cab to Hotel,Uber,650,Transport,Available,Ravi Kumar,UPI
+2026-06-11,Hotel Booking Pune,JW Marriott,5100,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-06-11,Dinner with Pune Team,Barbeque Nation,1400,Meals,Available,Ravi Kumar,Corporate Card
+2026-06-12,Return Flight to Bangalore,Air India,4600,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-15,Flight to Mumbai,Air India,5400,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-15,Airport Cab to BKC,Uber,950,Transport,Available,Ravi Kumar,UPI
+2026-07-16,Hotel Stay Mumbai,Hyatt Regency,5800,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-07-16,Client Dinner,Trishna Restaurant,1650,Meals,Available,Ravi Kumar,Corporate Card
+2026-07-17,Return Flight to Bangalore,Vistara,6100,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-17,Home Cab,Ola,780,Transport,Available,Ravi Kumar,UPI
+2026-08-05,Flight to Delhi,IndiGo,6500,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-05,Airport Taxi to Hotel,Ola,850,Transport,Available,Ravi Kumar,UPI
+2026-08-06,Hotel Stay - Delhi,Marriott,4200,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-08-06,Dinner with Client,The Grand Restaurant,750,Meals,Available,Ravi Kumar,Cash
+2026-08-07,Local Cab to Office,Uber,350,Transport,Available,Ravi Kumar,UPI
+2026-08-07,Lunch Meeting,Olive Bistro,620,Meals,Available,Ravi Kumar,Corporate Card
+2026-08-08,Return Flight to Bangalore,IndiGo,7200,Flight,Available,Ravi Kumar,Corporate Card
+2026-08-12,Airport Taxi,Ola,900,Transport,Missing,Ravi Kumar,Cash

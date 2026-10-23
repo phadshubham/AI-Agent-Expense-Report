@@ -1,0 +1,7 @@
+date,description,merchant,amount,category,receipt_status,employee,payment_method
+2026-07-15,Flight to Mumbai,Air India,5400,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-15,Airport Cab to BKC,Uber,950,Transport,Available,Ravi Kumar,UPI
+2026-07-16,Hotel Stay Mumbai,Hyatt Regency,5800,Accommodation,Available,Ravi Kumar,Corporate Card
+2026-07-16,Client Dinner,Trishna Restaurant,1650,Meals,Available,Ravi Kumar,Corporate Card
+2026-07-17,Return Flight to Bangalore,Vistara,6100,Flight,Available,Ravi Kumar,Corporate Card
+2026-07-17,Home Cab,Ola,780,Transport,Available,Ravi Kumar,UPI
