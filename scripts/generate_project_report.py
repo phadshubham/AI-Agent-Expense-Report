@@ -1,8 +1,20 @@
 """
-Generate a publication-grade, professional 10-page project report in PDF format
+Generate a publication-grade, professional academic project report in PDF format
 for the AI-Powered Expense Report Management System using Agentic AI.
-Matches the academic reference styling (A4, clean margins, crisp navy palette,
-professional typography, metadata tables, vector diagrams, and live UI screenshots).
+Includes:
+- Page 1: Formal Cover Page (Centered, Project Title, Agentic AI, Team Members + Enrollment IDs, Guide)
+- Page 2: Table of Contents & List of Figures (Academic Index)
+- Pages 3-12: Complete 10-Page Technical Report containing all required sections in strict order:
+    1. Title & Project Specification (Metadata Table + Key Capabilities Added Grid)
+    2. Objective and System Framing
+    3. Design Principles
+    4. Technical Model Detail
+    5. Block Diagram & System Architecture
+    6. Flowchart & State Machine Decision Logic
+    7. Screenshots of Working Model (Step-by-Step UI Walkthrough across 3 pages)
+    8. Quantitative Evaluation & Test Verification (324 Tests)
+    9. Limitations and Failure Cases
+    10. Ethical Considerations, Compliance Governance & Conclusion
 """
 import os
 import pypdf
@@ -39,6 +51,7 @@ C_CODE_BG = colors.HexColor("#f1f5f9")      # Monospace grey
 class NumberedCanvas(canvas.Canvas):
     """
     Two-pass canvas to stamp running header and footer with total page count.
+    Suppresses headers and footers on Page 1 (Formal Cover Page).
     """
     def __init__(self, *args, **kwargs):
         super(NumberedCanvas, self).__init__(*args, **kwargs)
@@ -57,13 +70,17 @@ class NumberedCanvas(canvas.Canvas):
         super(NumberedCanvas, self).save()
 
     def draw_page_decorations(self, page_count):
+        # Skip header and footer on Page 1 (Formal Cover Page)
+        if self._pageNumber == 1:
+            return
+
         self.saveState()
         self.setFont("Helvetica", 7.5)
         self.setFillColor(C_TEXT_MUTED)
 
-        # Running Top Header on all pages
+        # Running Top Header
         header_left = "AI-Powered Expense Report Management System  |  Course: Agentic AI"
-        header_right = f"Page {self._pageNumber}"
+        header_right = f"Page {self._pageNumber} of {page_count}"
         self.drawString(MARGIN_X, PAGE_HEIGHT - 28, header_left)
         self.drawRightString(PAGE_WIDTH - MARGIN_X, PAGE_HEIGHT - 28, header_right)
 
@@ -95,12 +112,82 @@ def build_pdf():
     styles = getSampleStyleSheet()
 
     # Custom styles
+    cover_course_style = ParagraphStyle(
+        "CoverCourse",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=13,
+        leading=16,
+        textColor=C_ACCENT_BLUE,
+        alignment=1, # Center
+        spaceAfter=15
+    )
+    cover_title_style = ParagraphStyle(
+        "CoverTitle",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=22,
+        leading=27,
+        textColor=C_PRIMARY,
+        alignment=1, # Center
+        spaceAfter=12
+    )
+    cover_subtitle_style = ParagraphStyle(
+        "CoverSubTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=10,
+        leading=14,
+        textColor=C_TEXT_MUTED,
+        alignment=1, # Center
+        spaceAfter=25
+    )
+    cover_label_style = ParagraphStyle(
+        "CoverLabel",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=10.5,
+        leading=14,
+        textColor=C_TEXT_MUTED,
+        alignment=1, # Center
+        spaceAfter=8
+    )
+    cover_members_style = ParagraphStyle(
+        "CoverMembers",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=18,
+        textColor=C_TEXT_DARK,
+        alignment=1, # Center
+        spaceAfter=25
+    )
+    cover_guide_style = ParagraphStyle(
+        "CoverGuide",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=13,
+        leading=16,
+        textColor=C_PRIMARY,
+        alignment=1, # Center
+        spaceAfter=45
+    )
+    cover_footer_style = ParagraphStyle(
+        "CoverFooter",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=9,
+        leading=13,
+        textColor=C_TEXT_MUTED,
+        alignment=1 # Center
+    )
+
     title_style = ParagraphStyle(
         "DocTitle",
         parent=styles["Heading1"],
         fontName="Helvetica-Bold",
-        fontSize=20,
-        leading=24,
+        fontSize=19,
+        leading=23,
         textColor=C_PRIMARY,
         spaceAfter=5
     )
@@ -187,7 +274,190 @@ def build_pdf():
     story = []
 
     # =========================================================================
-    # PAGE 1: 1. TITLE & PROJECT SPECIFICATION
+    # PAGE 1: FORMAL ACADEMIC COVER PAGE (CENTERED IN THE MIDDLE OF PAGE)
+    # =========================================================================
+    story.append(Spacer(1, 140))
+    story.append(Paragraph("COURSE: AGENTIC AI", cover_course_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("AI-POWERED EXPENSE REPORT MANAGEMENT SYSTEM USING AGENTIC AI", cover_title_style))
+    story.append(Paragraph(
+        "Autonomous Multi-Agent Framework with Deterministic Arithmetic Guardrails,<br/>"
+        "Two-Tier SQLite Persistent Memory, and Human-in-the-Loop Governance",
+        cover_subtitle_style
+    ))
+    story.append(HRFlowable(width="55%", thickness=1.5, color=C_PRIMARY, spaceAfter=28, spaceBefore=0))
+    story.append(Paragraph("Presented by:", cover_label_style))
+    story.append(Paragraph(
+        "<b>Kaustubh Manjarekar</b> &nbsp;–&nbsp; ADT23SOCB0510<br/>"
+        "<b>Paras Salunke</b> &nbsp;–&nbsp; ADT23SOCB0692<br/>"
+        "<b>Shubham Phad</b> &nbsp;–&nbsp; ADT23SOCB1106<br/>"
+        "<b>Shubham Mishra</b> &nbsp;–&nbsp; ADT23SOCB1110",
+        cover_members_style
+    ))
+    story.append(Paragraph("Guide:", cover_label_style))
+    story.append(Paragraph("<b>Prof Swapnili Karmore</b>", cover_guide_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph(
+        "Department of Computer Engineering<br/>"
+        "Academic Year 2026 – 2027",
+        cover_footer_style
+    ))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 2: TABLE OF CONTENTS (INDEX) & LIST OF FIGURES
+    # =========================================================================
+    story.append(Paragraph("Table of Contents & List of Figures", h1_style))
+    story.append(Paragraph(
+        "Comprehensive architectural index of system documentation, formal specifications, "
+        "decision flowcharts, verification benchmarks, and live working screenshots.",
+        subtitle_style
+    ))
+
+    # TOC Table
+    story.append(Paragraph("Index of Report Sections", h2_style))
+    toc_data = [
+        [Paragraph("Sec.", table_header), Paragraph("Section / Topic Description", table_header), Paragraph("Architectural Focus / Milestone", table_header), Paragraph("Page", table_header)],
+        [
+            Paragraph("<b>1</b>", table_cell_bold),
+            Paragraph("<b>Title & Project Specification</b>", table_cell_bold),
+            Paragraph("Executive Summary, Metadata Table & Key Modules Added", table_cell),
+            Paragraph("<b>Page 3</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>2</b>", table_cell_bold),
+            Paragraph("<b>Objective and System Framing</b>", table_cell_bold),
+            Paragraph("Industry Need, LLM Pitfalls & Syllabus Mapping Table", table_cell),
+            Paragraph("<b>Page 4</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>3</b>", table_cell_bold),
+            Paragraph("<b>Design Principles</b>", table_cell_bold),
+            Paragraph("Deterministic Math, Zero Silent Approvals & Data Isolation", table_cell),
+            Paragraph("<b>Page 5</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>4</b>", table_cell_bold),
+            Paragraph("<b>Technical Model Detail</b>", table_cell_bold),
+            Paragraph("Agents 1–3 Specialized Engines & Two-Tier Storage Architecture", table_cell),
+            Paragraph("<b>Page 5</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>5</b>", table_cell_bold),
+            Paragraph("<b>Block Diagram & System Architecture</b>", table_cell_bold),
+            Paragraph("High-Res Architecture Diagram & Component Interface Specs", table_cell),
+            Paragraph("<b>Page 6</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>6</b>", table_cell_bold),
+            Paragraph("<b>Flowchart & State Machine Decision Logic</b>", table_cell_bold),
+            Paragraph("LangGraph StateGraph Flowchart & Node Transition Invariants", table_cell),
+            Paragraph("<b>Page 7</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>7</b>", table_cell_bold),
+            Paragraph("<b>Screenshots of Working Model (Step-by-Step)</b>", table_cell_bold),
+            Paragraph("Live Streamlit FinTech Application End-to-End Walkthrough", table_cell),
+            Paragraph("<b>Page 8</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("", table_cell),
+            Paragraph("&nbsp;&nbsp;• 7.1 Step 1 — Ingestion, Identity & Table Editor (170 Rows)", table_cell),
+            Paragraph("SHA-256 Dataset Identity & Real-time Health Ribbon", table_cell),
+            Paragraph("Page 8", table_cell)
+        ],
+        [
+            Paragraph("", table_cell),
+            Paragraph("&nbsp;&nbsp;• 7.2 Step 2 — Request Formulation & Multi-Agent Stages", table_cell),
+            Paragraph("Natural-Language Query Input & Real-time Stage Tracking", table_cell),
+            Paragraph("Page 8", table_cell)
+        ],
+        [
+            Paragraph("", table_cell),
+            Paragraph("&nbsp;&nbsp;• 7.3 Step 3 — Multi-Agent Results & Chronological Audit Log", table_cell),
+            Paragraph("Sequential Agent Handoff Telemetry & Diagnostic Traces", table_cell),
+            Paragraph("Page 9", table_cell)
+        ],
+        [
+            Paragraph("", table_cell),
+            Paragraph("&nbsp;&nbsp;• 7.4 Step 4 — Human-in-the-Loop Review & Direct Resolution", table_cell),
+            Paragraph("Compliance Issue Management & Managerial Exception Overrides", table_cell),
+            Paragraph("Page 9", table_cell)
+        ],
+        [
+            Paragraph("", table_cell),
+            Paragraph("&nbsp;&nbsp;• 7.5 Step 5 — Executive Financial Summary & Email Dispatch", table_cell),
+            Paragraph("ReportLab PDF Download & Autonomous Qwen 3 Email Console", table_cell),
+            Paragraph("Page 10", table_cell)
+        ],
+        [
+            Paragraph("", table_cell),
+            Paragraph("&nbsp;&nbsp;• 7.6 Step 6 — Persistent SQLite Memory & History Repository", table_cell),
+            Paragraph("Cryptographically Scoped Audit Runs & Reproducible Snapshots", table_cell),
+            Paragraph("Page 10", table_cell)
+        ],
+        [
+            Paragraph("<b>8</b>", table_cell_bold),
+            Paragraph("<b>Quantitative Evaluation & Test Verification</b>", table_cell_bold),
+            Paragraph("324 Test Suite, Benchmark Comparisons & Deduplication Proof", table_cell),
+            Paragraph("<b>Page 11</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>9</b>", table_cell_bold),
+            Paragraph("<b>Limitations and Failure Cases</b>", table_cell_bold),
+            Paragraph("Semantic Temporal Mismatch & Descriptor Dilution Edge Case", table_cell),
+            Paragraph("<b>Page 12</b>", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>10</b>", table_cell_bold),
+            Paragraph("<b>Ethical Considerations, Governance & Conclusion</b>", table_cell_bold),
+            Paragraph("Financial Privacy, Non-Repudiation, IP & Future Roadmap", table_cell),
+            Paragraph("<b>Page 12</b>", table_cell_bold)
+        ]
+    ]
+    toc_table = Table(toc_data, colWidths=[28, 250, 195, USABLE_WIDTH - 473])
+    toc_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), C_PRIMARY),
+        ('GRID', (0,0), (-1,-1), 0.5, C_BORDER),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, C_BG_LIGHT]),
+        ('TOPPADDING', (0,0), (-1,-1), 2.2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2.2),
+        ('LEFTPADDING', (0,0), (-1,-1), 5),
+        ('RIGHTPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(toc_table)
+    story.append(Spacer(1, 8))
+
+    # List of Figures Table
+    story.append(Paragraph("List of Architectural Figures & System Screenshots", h2_style))
+    fig_data = [
+        [Paragraph("Figure", table_header), Paragraph("Figure Title & Architectural Context", table_header), Paragraph("Location", table_header)],
+        [Paragraph("<b>Figure 1</b>", table_cell_bold), Paragraph("Multi-Agent System Architecture & Component Block Diagram", table_cell), Paragraph("<b>Page 6</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 2</b>", table_cell_bold), Paragraph("LangGraph State Machine Decision Flowchart with HITL Interrupts", table_cell), Paragraph("<b>Page 7</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 3</b>", table_cell_bold), Paragraph("Step 1 — Active Dataset Banner, Health Ribbon, and AgGrid Table Editor", table_cell), Paragraph("<b>Page 8</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 4</b>", table_cell_bold), Paragraph("Step 2 — Natural-Language Request Formulation Bar & Multi-Agent Collaboration Stages", table_cell), Paragraph("<b>Page 8</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 5</b>", table_cell_bold), Paragraph("Step 3 — Chronological Activity & Audit Log with Sequential Telemetry", table_cell), Paragraph("<b>Page 9</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 6</b>", table_cell_bold), Paragraph("Step 4 — Compliance & Audit Issue Management (Auditor Direct Resolution)", table_cell), Paragraph("<b>Page 9</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 7</b>", table_cell_bold), Paragraph("Step 5 — ReportLab Vector PDF Download & AI Email Dispatch Console", table_cell), Paragraph("<b>Page 10</b>", table_cell_bold)],
+        [Paragraph("<b>Figure 8</b>", table_cell_bold), Paragraph("Step 6 — Prompt & Report Run History Repository (Scoped Isolation)", table_cell), Paragraph("<b>Page 10</b>", table_cell_bold)]
+    ]
+    fig_table = Table(fig_data, colWidths=[55, USABLE_WIDTH - 110, 55])
+    fig_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), C_PRIMARY),
+        ('GRID', (0,0), (-1,-1), 0.5, C_BORDER),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, C_BG_LIGHT]),
+        ('TOPPADDING', (0,0), (-1,-1), 2.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(fig_table)
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 3: 1. TITLE & PROJECT SPECIFICATION
     # =========================================================================
     story.append(Paragraph("1. Title & Project Specification", h1_style))
     story.append(Paragraph("AI-Powered Expense Report Management System Using Agentic AI", title_style))
@@ -303,7 +573,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 2: 2. OBJECTIVE & SYSTEM FRAMING
+    # PAGE 4: 2. OBJECTIVE & SYSTEM FRAMING
     # =========================================================================
     story.append(Paragraph("2. Objective and System Framing", h1_style))
     story.append(Paragraph(
@@ -401,7 +671,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 3: 3. DESIGN PRINCIPLES & 4. TECHNICAL MODEL DETAIL
+    # PAGE 5: 3. DESIGN PRINCIPLES & 4. TECHNICAL MODEL DETAIL
     # =========================================================================
     story.append(Paragraph("3. Design Principles", h1_style))
     story.append(Paragraph(
@@ -455,7 +725,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 4: 5. BLOCK DIAGRAM
+    # PAGE 6: 5. BLOCK DIAGRAM
     # =========================================================================
     story.append(Paragraph("5. Block Diagram & System Architecture", h1_style))
     story.append(Paragraph(
@@ -527,7 +797,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 5: 6. FLOWCHART
+    # PAGE 7: 6. FLOWCHART
     # =========================================================================
     story.append(Paragraph("6. Flowchart & State Machine Decision Logic", h1_style))
     story.append(Paragraph(
@@ -600,7 +870,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 6: 7. SCREENSHOTS OF WORKING MODEL (PART 1)
+    # PAGE 8: 7. SCREENSHOTS OF WORKING MODEL (PART 1)
     # =========================================================================
     story.append(Paragraph("7. Screenshots of Working Model (Step-by-Step)", h1_style))
     story.append(Paragraph(
@@ -639,7 +909,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 7: 7. SCREENSHOTS OF WORKING MODEL (PART 2)
+    # PAGE 9: 7. SCREENSHOTS OF WORKING MODEL (PART 2)
     # =========================================================================
     story.append(Paragraph("7. Screenshots of Working Model (Continued)", h1_style))
 
@@ -673,7 +943,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 8: 7. SCREENSHOTS OF WORKING MODEL (PART 3)
+    # PAGE 10: 7. SCREENSHOTS OF WORKING MODEL (PART 3)
     # =========================================================================
     story.append(Paragraph("7. Screenshots of Working Model (Continued)", h1_style))
 
@@ -707,7 +977,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 9: 8. QUANTITATIVE EVALUATION & TEST VERIFICATION
+    # PAGE 11: 8. QUANTITATIVE EVALUATION & TEST VERIFICATION
     # =========================================================================
     story.append(Paragraph("8. Quantitative Evaluation & Test Verification", h1_style))
     story.append(Paragraph(
@@ -830,7 +1100,7 @@ def build_pdf():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 10: 9. LIMITATIONS & 10. ETHICAL GOVERNANCE & CONCLUSION
+    # PAGE 12: 9. LIMITATIONS & 10. ETHICAL GOVERNANCE & CONCLUSION
     # =========================================================================
     story.append(Paragraph("9. Limitations and Failure Cases", h1_style))
     story.append(Paragraph(
