@@ -28,6 +28,10 @@ env/
 # Generated reports (optional — uncomment to ignore)
 # reports/*.pdf
 
+# Database backups
+data/*backup*.db
+data/*.bak
+
 # Checkpoints
 .checkpoints/
 
