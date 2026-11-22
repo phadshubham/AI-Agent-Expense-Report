@@ -9,6 +9,7 @@ a single unified PDF).
 """
 
 import os
+import math
 from datetime import datetime
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -119,7 +120,14 @@ def _build_expense_table(expenses: list[dict]) -> Table:
         except (ValueError, TypeError):
             date_display = str(date_str)
         
-        amount = exp.get("amount", 0)
+        raw_amt = exp.get("amount", 0)
+        try:
+            amt_num = float(raw_amt) if raw_amt is not None else 0.0
+            if math.isnan(amt_num) or math.isinf(amt_num):
+                amt_num = 0.0
+        except (ValueError, TypeError):
+            amt_num = 0.0
+
         receipt = exp.get("receipt_status", "N/A")
         
         desc = exp.get("description", "")
@@ -136,7 +144,7 @@ def _build_expense_table(expenses: list[dict]) -> Table:
             desc,
             merchant,
             exp.get("category", "Other"),
-            f"{amount:,.2f}",
+            f"{amt_num:,.2f}",
             str(receipt),
         ]
         table_data.append(row)
@@ -228,7 +236,7 @@ def generate_pdf(
     employee_name: str,
     start_date: str,
     end_date: str,
-    output_dir: str = "reports",
+    output_dir: str = None,
     validation_status: str = "Clear",
     validation_notes: list = None,
     report_id: str = None,
@@ -245,7 +253,7 @@ def generate_pdf(
         employee_name: Name of employee (or 'Company Team').
         start_date: Period start (YYYY-MM-DD).
         end_date: Period end (YYYY-MM-DD).
-        output_dir: Output directory.
+        output_dir: Output directory (defaults to EXPENSE_REPORTS_DIR or 'reports').
         validation_status: Audit status ('Clear', 'Reviewed with Exceptions', 'Needs Human Review').
         validation_notes: Reviewer exception notes to include.
         report_id: Stable identifier for this report run.
@@ -253,10 +261,33 @@ def generate_pdf(
     Returns:
         Absolute path to the generated PDF.
     """
+    output_dir = output_dir or os.getenv("EXPENSE_REPORTS_DIR", "reports")
     os.makedirs(output_dir, exist_ok=True)
     
-    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    if not start_date or not end_date:
+        valid_dates = [
+            str(exp.get("date") or exp.get("expense_date", "")).strip()[:10]
+            for exp in expenses
+            if str(exp.get("date") or exp.get("expense_date", "")).strip() not in ("", "None", "nan")
+        ]
+        if valid_dates:
+            sorted_dates = sorted(valid_dates)
+            start_date = start_date or sorted_dates[0]
+            end_date = end_date or sorted_dates[-1]
+        else:
+            now = datetime.now()
+            start_date = start_date or now.strftime("%Y-%m-01")
+            end_date = end_date or now.strftime("%Y-%m-%d")
+
+    try:
+        start_dt = datetime.strptime(str(start_date)[:10], "%Y-%m-%d")
+    except Exception:
+        start_dt = datetime.now()
+    try:
+        end_dt = datetime.strptime(str(end_date)[:10], "%Y-%m-%d")
+    except Exception:
+        end_dt = datetime.now()
+
     month_name = start_dt.strftime("%B")
     year = start_dt.strftime("%Y")
     

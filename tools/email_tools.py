@@ -289,7 +289,7 @@ def send_email_report(
     """
     Send the expense report email with attached PDF using the Resend API.
     """
-    api_key = resend_api_key or os.getenv("RESEND_API_KEY", "")
+    api_key = os.getenv("RESEND_API_KEY", "") if resend_api_key is None else resend_api_key
     from_email = resend_from or os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
 
     return send_email_via_resend(

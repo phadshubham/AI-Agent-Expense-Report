@@ -3,10 +3,12 @@ Tests for email_tools module:
 - Qwen 3 / Template draft generation
 - Email validation
 - Attachment validation
-- SMTP Simulation mode
+- SMTP / Resend Simulation mode
 """
 
 import os
+import shutil
+import tempfile
 import unittest
 from tools.email_tools import generate_email_draft, send_email_report
 
@@ -14,6 +16,7 @@ from tools.email_tools import generate_email_draft, send_email_report
 class TestEmailTools(unittest.TestCase):
 
     def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
         self.mock_totals = {
             "grand_total": 45200.0,
             "category_totals": {
@@ -24,17 +27,12 @@ class TestEmailTools(unittest.TestCase):
             "transaction_count": 8,
             "missing_receipt_total": 0.0,
         }
-        self.dummy_pdf = "reports/test_dummy_report.pdf"
-        os.makedirs("reports", exist_ok=True)
+        self.dummy_pdf = os.path.join(self.test_dir, "test_dummy_report.pdf")
         with open(self.dummy_pdf, "wb") as f:
             f.write(b"%PDF-1.4 test expense report content")
 
     def tearDown(self):
-        if os.path.exists(self.dummy_pdf):
-            try:
-                os.remove(self.dummy_pdf)
-            except OSError:
-                pass
+        shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_generate_email_draft_structure(self):
         """Test draft generation produces non-empty subject and body."""
@@ -70,7 +68,7 @@ class TestEmailTools(unittest.TestCase):
             to_email="manager@example.com",
             subject="Test Subject",
             body="Test Body",
-            pdf_path="reports/non_existent_file.pdf",
+            pdf_path=os.path.join(self.test_dir, "non_existent_file.pdf"),
         )
         self.assertFalse(res["success"])
         self.assertIn("does not exist", res["message"])
@@ -91,7 +89,6 @@ class TestEmailTools(unittest.TestCase):
 
     def test_send_email_resend_with_configured_key(self):
         """Test Resend setup recognizes configured API key."""
-        # Using a test mock key format
         key = "re_test_mock_123456"
         res = send_email_report(
             to_email="phadshubham44@gmail.com",
@@ -100,7 +97,6 @@ class TestEmailTools(unittest.TestCase):
             pdf_path=self.dummy_pdf,
             resend_api_key=key,
         )
-        # Should attempt Resend API call; with mock key it returns 401/403 or error response from Resend, confirming connection
         self.assertIn("Resend", res["message"])
 
 

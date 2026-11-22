@@ -1,9 +1,9 @@
-# 📘 System Evolution & Technical Workflow: From Baseline to Units III & IV
+# 📘 System Evolution & Technical Workflow: From Prototype to Enterprise Multi-Agent Architecture
 
 > **Document Summary**: This document details the architectural evolution of the **AI Expense Report Agent**. It explains:
 > 1. What the system originally had (baseline architecture, tools, and constraints).
-> 2. What was introduced in **Unit III (Persistent SQLite Memory & Deduplication)**.
-> 3. What was introduced in **Unit IV (Multi-Agent Collaboration with LangGraph)**.
+> 2. What was introduced in the **Persistent SQLite Memory & Deduplication System**.
+> 3. What was introduced in the **Multi-Agent Collaboration Architecture with LangGraph**.
 > 4. **How exactly everything takes place** during runtime execution — step-by-step from user prompt to database persistence, multi-agent handoffs, human review, and publication-grade PDF generation.
 
 ---
@@ -11,17 +11,17 @@
 ## 📑 Table of Contents
 
 1. [Executive Summary & Evolution Timeline](#1-executive-summary--evolution-timeline)
-2. [What the System Already Had (Baseline / Pre-Unit 3 & 4)](#2-what-the-system-already-had-baseline--pre-unit-3--4)
+2. [What the System Already Had (Baseline Architecture)](#2-what-the-system-already-had-baseline-architecture)
    - [2.1 Initial Monolithic Pipeline](#21-initial-monolithic-pipeline)
    - [2.2 Baseline Computational & Formatting Tools](#22-baseline-computational--formatting-tools)
    - [2.3 Limitations of the Original System](#23-limitations-of-the-original-system)
-3. [What Was Added in Unit III: Persistent SQLite Memory System](#3-what-was-added-in-unit-iii-persistent-sqlite-memory-system)
+3. [Persistent SQLite Memory System](#3-persistent-sqlite-memory-system)
    - [3.1 Two-Tier Database Architecture & Separation](#31-two-tier-database-architecture--separation)
    - [3.2 Domain Relational Schema (`data/expense_memory.db`)](#32-domain-relational-schema-dataexpense_memorydb)
    - [3.3 Cryptographic Batch Deduplication (SHA-256)](#33-cryptographic-batch-deduplication-sha-256)
    - [3.4 Memory Management API (`tools/memory_tools.py`)](#34-memory-management-api-toolsmemory_toolspy)
    - [3.5 Cross-Session Recall Without Re-uploading](#35-cross-session-recall-without-re-uploading)
-4. [What Was Added in Unit IV: Multi-Agent Collaboration Architecture](#4-what-was-added-in-unit-iv-multi-agent-collaboration-architecture)
+4. [Multi-Agent Collaboration Architecture](#4-multi-agent-collaboration-architecture)
    - [4.1 Decoupling into Three Specialized Collaborating Agents](#41-decoupling-into-three-specialized-collaborating-agents)
    - [4.2 Agent 1: Expense Analysis Agent](#42-agent-1-expense-analysis-agent)
    - [4.3 Agent 2: Validation Agent](#43-agent-2-validation-agent)
@@ -29,7 +29,7 @@
    - [4.5 Agent 3: Report Generation Agent & The Integrity Guard](#45-agent-3-report-generation-agent--the-integrity-guard)
    - [4.6 Typed State Schema & Agent Contracts (`state.py`)](#46-typed-state-schema--agent-contracts-statepy)
    - [4.7 Official Validation Status Model](#47-official-validation-status-model)
-5. [Side-by-Side Comparison: Before vs. After Unit III & IV](#5-side-by-side-comparison-before-vs-after-unit-iii--iv)
+5. [Side-by-Side Comparison: Before vs. After Modernization](#5-side-by-side-comparison-before-vs-after-modernization)
 6. [How Exactly Everything Takes Place (End-to-End Execution Flow)](#6-how-exactly-everything-takes-place-end-to-end-execution-flow)
    - [6.1 Complete Sequence Diagram](#61-complete-sequence-diagram)
    - [6.2 Detailed Step-by-Step Runtime Walkthrough](#62-detailed-step-by-step-runtime-walkthrough)
@@ -42,22 +42,22 @@
 
 The system began as a procedural script and single-agent prototype that read static CSV files to generate basic PDF summaries. While capable of simple text-to-report generation, it suffered from severe real-world limitations: no historical memory, vulnerability to duplicate entries, inability to audit compliance discrepancies across sessions, and a risk of silent approvals.
 
-Through **Unit III** and **Unit IV**, the system was elevated to an **enterprise-grade, multi-agent AI architecture** backed by persistent SQLite databases, cryptographic deduplication, rigorous compliance auditing, and human-in-the-loop review guards.
+Through modernization, the system was elevated to an **enterprise-grade, multi-agent AI architecture** backed by persistent SQLite databases, cryptographic deduplication, rigorous compliance auditing, and human-in-the-loop review guards.
 
 ```mermaid
 timeline
     title System Evolution Timeline
-    Baseline (Units I & II) : Single monolithic pipeline
-                            : Ephemeral CSV file inputs
-                            : Basic deterministic tools (Pandas, ReportLab)
-                            : Transient validation checks
-    Unit III (Persistent Memory) : Dedicated SQLite Business Database (expense_memory.db)
-                                 : Cryptographic SHA-256 Batch Deduplication
-                                 : Persistent Validation Issue Lifecycle
-                                 : Historical Report Run Archival
-    Unit IV (Multi-Agent System) : LangGraph StateGraph with 3 Cooperating Agents
-                                 : Agent 1 - Expense Analysis Agent
-                                 : Agent 2 - Validation Agent
+    Initial Prototype : Single monolithic pipeline
+                      : Ephemeral CSV file inputs
+                      : Basic deterministic tools (Pandas, ReportLab)
+                      : Transient validation checks
+    Persistent Memory : Dedicated SQLite Business Database (expense_memory.db)
+                      : Cryptographic SHA-256 Batch Deduplication
+                      : Persistent Validation Issue Lifecycle
+                      : Historical Report Run Archival
+    Multi-Agent Engine : LangGraph StateGraph with 3 Cooperating Agents
+                       : Agent 1 - Expense Analysis Agent
+                       : Agent 2 - Validation Agent
                                  : Agent 3 - Report Generation Agent
                                  : Human-in-the-Loop Interruption & Revalidation
                                  : Integrity Guard (Strictly No Silent Approvals)
@@ -65,9 +65,9 @@ timeline
 
 ---
 
-## 2. What the System Already Had (Baseline / Pre-Unit 3 & 4)
+## 2. What the System Already Had (Baseline Architecture)
 
-In the initial implementation (Units I & II), the application consisted of a single linear workflow and a collection of deterministic helper utilities.
+In the initial implementation, the application consisted of a single linear workflow and a collection of deterministic helper utilities.
 
 ### 2.1 Initial Monolithic Pipeline
 - **Single-Node Execution**: The system executed as a single procedural pipeline. An intent-extraction function parsed user input, filtered a DataFrame loaded in memory, checked a few dictionary conditions, computed sums, and called a PDF generator.
@@ -102,12 +102,12 @@ The core functional tools handled data manipulation outside the LLM to prevent a
 
 ---
 
-## 3. What Was Added in Unit III: Persistent SQLite Memory System
+## 3. What Was Added: Persistent SQLite Memory System
 
-Unit III introduced an enterprise-grade persistent data store, eliminating the stateless CSV dependency and providing a robust audit trail.
+The Persistent Memory System introduced an enterprise-grade data store, eliminating the stateless CSV dependency and providing a robust audit trail.
 
 ### 3.1 Two-Tier Database Architecture & Separation
-A key architectural principle of Unit III is the strict separation between **business domain data** and **workflow execution state**:
+A key architectural principle is the strict separation between **business domain data** and **workflow execution state**:
 
 1. **Business Domain Database (`data/expense_memory.db`)**:
    - Implemented in [`tools/memory_tools.py`](file:///c:/Users/Space/OneDrive/Documents/AI%20Agent%20Expense%20report/tools/memory_tools.py).
@@ -133,7 +133,7 @@ A key architectural principle of Unit III is the strict separation between **bus
 
 ### 3.2 Domain Relational Schema (`data/expense_memory.db`)
 
-Unit III implemented 5 relational tables with strict foreign key constraints and indexing:
+The persistent memory database implemented relational tables with strict foreign key constraints and indexing:
 
 #### 1. `expenses` Table
 Stores normalized transaction records with stable identifiers:
@@ -203,7 +203,7 @@ $$\text{Hash} = \text{SHA256}(\text{source\_name} + \text{normalized\_records\_j
 - Legitimate duplicates (such as two identical taxi fares on the same day) are preserved with distinct `record_id` tags so that the Validation Agent can audit them.
 
 ### 3.4 Memory Management API (`tools/memory_tools.py`)
-Unit III exposed modular, thread-safe functions:
+The memory architecture exposed modular, thread-safe functions:
 - `init_memory_db(db_path)`: Bootstraps tables and indexes safely.
 - `save_expenses(expenses, source_name, db_path)`: Persists transactions with deduplication.
 - `retrieve_expenses_from_db(...)`: Filtered SQL queries by employee, date range, and category.
@@ -223,9 +223,9 @@ The agent directly retrieves records from `data/expense_memory.db` without needi
 
 ---
 
-## 4. What Was Added in Unit IV: Multi-Agent Collaboration Architecture
+## 4. Multi-Agent Collaboration Architecture
 
-Unit IV transformed the monolithic script into a **cooperative multi-agent system** orchestrated by **LangGraph StateGraph**.
+The system transformed the monolithic script into a **cooperative multi-agent system** orchestrated by **LangGraph StateGraph**.
 
 ```mermaid
 graph TD
@@ -392,9 +392,9 @@ The system enforces three official validation statuses across the UI, the SQLite
 
 ---
 
-## 5. Side-by-Side Comparison: Before vs. After Unit III & IV
+## 5. Side-by-Side Comparison: Before vs. After Modernization
 
-| Capability | Baseline System (Pre-Unit 3 & 4) | After Units III & IV |
+| Capability | Baseline Prototype | Modernized Multi-Agent Platform |
 | :--- | :--- | :--- |
 | **Architecture** | Single procedural script / monolithic pipeline. | **3 Collaborating Agents** organized in a LangGraph StateGraph. |
 | **Data Storage** | Ephemeral; static CSV loaded into memory on each run. | **Two-Tier SQLite Architecture**: Domain Memory (`expense_memory.db`) + Graph State (`agent_state.db`). |
@@ -589,24 +589,25 @@ The table below illustrates how the SQLite databases mutate throughout each phas
 
 ## 7. Automated Verification & Demonstration Playbook
 
-The entire system's functionality across Units III and IV is verified through comprehensive test suites:
+The entire system's functionality is verified through comprehensive test suites consolidated in `tests/`:
 
-### 1. Run Complete Automated Test Suite (18 Tests)
+### 1. Run Complete Automated Test Suite (324 Tests)
 ```bash
-python -m unittest discover -p "test_*.py"
+pytest
 ```
 
-### 2. Verify Unit III: Persistent SQLite Memory (6 Tests)
+### 2. Verify Persistent SQLite Memory & Isolation
 ```bash
-python -m unittest test_memory_and_agents.TestPersistentMemory
+pytest tests/test_milestone1_db.py
 ```
-*Verifies*: Database schema initialization, cryptographic SHA-256 deduplication, query retrieval with filters, issue persistence, field updates, and report-run history.
+*Verifies*: Database schema initialization, migrations, cryptographic SHA-256 deduplication, query retrieval with dataset isolation, issue persistence, field updates, and report-run history.
 
-### 3. Verify Unit IV: Multi-Agent Collaboration & Integrity Guard (7 Tests)
+### 3. Verify Multi-Agent Collaboration & Integrity Guard
 ```bash
-python -m unittest test_memory_and_agents.TestMultiAgentCollaboration
+pytest tests/test_memory_and_agents.py
+pytest tests/test_milestone3_compliance.py
 ```
-*Verifies*: Agent 1 structured output, Agent 2 compliance audit, Agent 3 deterministic math, Agent 3 integrity guard refusal on unapproved data, and Human-in-the-Loop review actions (exclude, accept exceptions, revalidate).
+*Verifies*: Agent 1 structured output, Agent 2 compliance audit, Agent 3 deterministic math, Agent 3 integrity guard refusal on unapproved data, Human-in-the-Loop review actions (exclude, accept exceptions, revalidate), and persistent memory of auditor decisions.
 
 ### 4. Direct CLI Database Verification
 Inspect live SQLite memory metrics directly from PowerShell:

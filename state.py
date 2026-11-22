@@ -11,6 +11,22 @@ from typing import TypedDict, Annotated, Optional, List, Dict, Any
 from langgraph.graph.message import add_messages
 
 
+class ParsedFilters(TypedDict, total=False):
+    """
+    Canonical filter criteria extracted from natural-language prompts.
+    Shared consistently across parser, agent state, DB queries, and UI.
+    """
+    start_date: Optional[str]         # YYYY-MM-DD (inclusive) or None
+    end_date: Optional[str]           # YYYY-MM-DD (inclusive) or None
+    time_period_label: str            # e.g., "last month", "August 2026", "all"
+    expense_type: str                 # "all" | "travel"
+    employee: Optional[str]           # Specific employee name or None
+    category: Optional[str]           # Expense category (e.g. "Flight", "Meals") or None
+    merchant: Optional[str]           # Specific merchant or None
+    location: Optional[str]           # Destination/city or None
+    raw_prompt: str                   # Original user request string
+
+
 class AgentState(TypedDict, total=False):
     """
     Complete state for the Multi-Agent Expense Report workflow.
@@ -25,14 +41,20 @@ class AgentState(TypedDict, total=False):
     # --- Identification & Memory Tracking ---
     report_run_id: str          # Unique ID for this report run (e.g. REP-xxxxxxxx)
     data_source: str            # 'memory_db' | 'csv_file' | 'interactive_editor'
+    dataset_id: Optional[str]   # Active dataset identifier
+    dataset_version: Optional[int] # Active dataset version number
     
-    # --- User Request Parsing ---
+    # --- User Request Parsing & Canonical Filters ---
     user_request: str           # Original natural-language request
     start_date: str             # Computed start date (YYYY-MM-DD)
     end_date: str               # Computed end date (YYYY-MM-DD)
     expense_type: str           # e.g., "travel", "all"
     employee_name: str          # Employee name (or 'Company Team' for multi-employee)
     target_employee: str        # Explicit employee filter from prompt (if any)
+    parsed_filters: Optional[ParsedFilters] # Canonical filter object
+    filter_match_count: Optional[int]       # Number of records matching parsed_filters
+    zero_match_explanation: Optional[str]   # Diagnostic explanation when 0 records match
+    location_supported: Optional[bool]      # False if dataset lacks location/city columns
     
     # --- Multi-Agent Collaboration Data ---
     # Agent 1: Expense Analysis Agent output

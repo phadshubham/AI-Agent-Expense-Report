@@ -36,8 +36,8 @@ from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import interrupt
 
-from state import AgentState
-from tools.expense_tools import get_expenses, filter_expenses
+from state import AgentState, ParsedFilters
+from tools.expense_tools import get_expenses, filter_expenses, normalize_expense_columns
 from tools.validation_tools import validate_expenses, categorize_expenses, revalidate_single_expense
 from tools.calculation_tools import calculate_totals
 from tools.pdf_tools import generate_pdf
@@ -48,6 +48,7 @@ from tools.memory_tools import (
     save_validation_issues,
     update_expense_record,
     resolve_validation_issue,
+    apply_reviewer_decision,
     save_report_run,
 )
 
@@ -97,59 +98,22 @@ Respond with ONLY this JSON:
 
             json_match = re.search(r'\{[^{}]+\}', content)
             if json_match:
-                return json.loads(json_match.group())
+                extracted = json.loads(json_match.group())
+                emp = str(extracted.get("employee_name", "")).strip()
+                if emp.lower() in {"all", "all employees", "all staff", "everyone", "none", "n/a", "null"}:
+                    extracted["employee_name"] = ""
+                clean_req = user_request.lower().replace("augest", "august").replace("aprl", "april")
+                if (
+                    re.search(r'\ball\s+(?:employees?|staff|team|workers?)\b', clean_req)
+                    or re.search(r'\ball\s+(?:travel\s+)?expenses?\b', clean_req)
+                    or re.search(r'\b(?:everyone|company[- ]wide)\b', clean_req)
+                ) and not re.search(r'\b(?:for|of|by)\s+[A-Za-z]+(?:\s+[A-Za-z]+)?\b', user_request):
+                    extracted["employee_name"] = ""
+                return extracted
         except Exception:
             pass
 
     return _regex_extract_intent(user_request)
-
-
-def _regex_extract_intent(user_request: str) -> dict:
-    """Regex-based fallback for intent extraction."""
-    request_lower = user_request.lower()
-
-    # Normalize common typos
-    req_clean = request_lower.replace("augest", "august").replace("aprl", "april")
-
-    # Expense type
-    expense_type = "travel"
-    if "all" in req_clean and "expense" in req_clean:
-        expense_type = "all"
-
-    # Time period
-    time_period = "last month"
-    month_match = re.search(
-        r'(january|february|march|april|may|june|july|august|september|october|november|december)\s*(\d{4})?',
-        req_clean,
-    )
-    if month_match:
-        time_period = month_match.group(0).strip()
-    elif "last month" in req_clean:
-        time_period = "last month"
-    elif "this month" in req_clean:
-        time_period = "this month"
-
-    # Dynamic employee extraction from prompt (zero hardcoding)
-    employee_name = ""
-    match_for = re.search(r'\b(?:for|of)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)\b', user_request)
-    if match_for:
-        candidate = match_for.group(1).strip()
-        ignore_words = {
-            "last", "this", "next", "month", "year",
-            "january", "february", "march", "april", "may", "june",
-            "july", "august", "augest", "september", "october", "november", "december",
-            "finance", "manager", "hr", "company", "travel", "all", "expenses", "expense",
-            "someone", "person", "team", "everyone", "my", "our", "me", "report"
-        }
-        words = candidate.lower().split()
-        if not any(w in ignore_words for w in words):
-            employee_name = candidate.title()
-
-    return {
-        "expense_type": expense_type,
-        "time_period": time_period,
-        "employee_name": employee_name,
-    }
 
 
 def _resolve_date_range(time_period: str) -> tuple[str, str]:
@@ -190,6 +154,355 @@ def _resolve_date_range(time_period: str) -> tuple[str, str]:
     return last_month_start.strftime("%Y-%m-%d"), last_month_end.strftime("%Y-%m-%d")
 
 
+def extract_canonical_filters(
+    user_request: str,
+    dataset_employees: Optional[List[str]] = None,
+) -> ParsedFilters:
+    """
+    Extract canonical filter criteria from user prompt deterministically.
+    - Sets employee = None for 'all expenses' or 'all employees'.
+    - Dynamic employee discovery in dataset_employees without substring collision.
+    - Handles typos in month names ("augest" -> "august", "aprl" -> "april").
+    - Resolves date range, expense type, category, location, and merchant.
+    """
+    req_clean = " ".join(user_request.split())
+    req_lower = req_clean.lower()
+    norm_prompt = req_lower.replace("augest", "august").replace("aprl", "april")
+
+    # 1. Global / All indicator check
+    is_all_employees = bool(
+        re.search(r'\ball\s+(?:employees?|staff|team|workers?)\b', norm_prompt)
+        or re.search(r'\b(?:everyone|company[- ]wide|across all|whole team)\b', norm_prompt)
+        or re.search(r'\ball\s+employee\s+expenses?\b', norm_prompt)
+        or re.search(r'\bshow\s+all\s+(?:employee\s+)?expenses?\b', norm_prompt)
+    )
+
+    # If prompt asks for "all expenses" or "all travel expenses", only treat as all employees if not qualified by an explicit employee
+    has_all_expenses = bool(
+        re.search(r'\ball\s+(?:travel\s+)?expenses?\b', norm_prompt)
+        or norm_prompt == "all expenses"
+    )
+
+    # 2. Expense type
+    expense_type = "travel"
+    if re.search(r'\btravel\b', norm_prompt):
+        expense_type = "travel"
+    elif re.search(r'\ball\b', norm_prompt) and re.search(r'\bexpense', norm_prompt):
+        expense_type = "all"
+
+    # 3. Time period & Date range
+    time_period_label = None
+    month_matches = list(
+        re.finditer(
+            r'\b(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s+(\d{4}))?\b',
+            norm_prompt,
+        )
+    )
+    chosen_match = None
+    if month_matches:
+        candidate_months = []
+        for m in month_matches:
+            m_month = m.group(1).lower()
+            is_may_person = False
+            if m_month == "may":
+                # Check if 'may' is part of a person's name (e.g. 'May Brown')
+                start_idx, end_idx = m.span()
+                post_text = req_clean[end_idx:].strip()
+                if post_text and re.match(r'^[A-Z][a-z]+', post_text):
+                    is_may_person = True
+                pre_text = req_clean[:start_idx].strip().lower()
+                if re.search(r'\b(?:for|of|by)\s*$', pre_text):
+                    if (post_text and re.match(r'^[A-Za-z]+', post_text)) or (
+                        dataset_employees and any(re.search(r'\bmay\b', de.lower()) for de in dataset_employees)
+                    ):
+                        is_may_person = True
+                if dataset_employees and any(re.search(r'\bmay\s+[a-z]+', de.lower()) for de in dataset_employees):
+                    if re.search(r'\bmay\s+[a-z]+', norm_prompt):
+                        is_may_person = True
+
+            if is_may_person and not m.group(2):
+                # 'May' is part of a person's name without explicit year attached; omit from date matches
+                pass
+            else:
+                candidate_months.append(m)
+
+        if candidate_months:
+            with_year = [m for m in candidate_months if m.group(2)]
+            chosen_match = with_year[0] if with_year else candidate_months[0]
+
+    if chosen_match:
+        time_period_label = chosen_match.group(0).strip()
+    elif "last month" in norm_prompt:
+        time_period_label = "last month"
+    elif "this month" in norm_prompt:
+        time_period_label = "this month"
+    elif "year to date" in norm_prompt or "ytd" in norm_prompt:
+        time_period_label = "year to date"
+
+    if time_period_label:
+        start_date, end_date = _resolve_date_range(time_period_label)
+    else:
+        start_date, end_date = None, None
+
+    # 4. Category extraction
+    known_categories = {
+        "flight": "Flight",
+        "flights": "Flight",
+        "transport": "Transport",
+        "transportation": "Transport",
+        "accommodation": "Accommodation",
+        "hotel": "Accommodation",
+        "meals": "Meals",
+        "meal": "Meals",
+        "food": "Meals",
+        "supplies": "Supplies",
+        "equipment": "Equipment",
+        "entertainment": "Entertainment",
+    }
+    category = None
+    for cat_key, cat_val in known_categories.items():
+        if cat_val and re.search(r'\b' + cat_key + r'\b', norm_prompt):
+            category = cat_val
+            break
+
+    # 5. Location extraction
+    known_cities = ["mumbai", "delhi", "bangalore", "bengaluru", "pune", "hyderabad", "chennai", "kolkata", "goa"]
+    location = None
+    for city in known_cities:
+        if re.search(r'\b' + city + r'\b', norm_prompt):
+            location = city.capitalize()
+            break
+    if not location:
+        loc_match = re.search(r'\b(?:in|at)\s+([A-Za-z]+)\b', req_clean)
+        if loc_match:
+            candidate_loc = loc_match.group(1).strip()
+            loc_ignore = {
+                "last", "this", "next", "month", "year",
+                "january", "february", "march", "april", "may", "june",
+                "july", "august", "augest", "september", "october", "november", "december",
+                "travel", "all", "expenses", "expense", "report", "data", "summary"
+            }
+            if candidate_loc.lower() not in loc_ignore:
+                location = candidate_loc.title()
+
+    # 6. Employee Extraction & Disambiguation
+    final_employee = None
+    ignore_words = {
+        "last", "this", "next", "month", "year", "quarter", "q1", "q2", "q3", "q4",
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "augest", "september", "october", "november", "december",
+        "finance", "manager", "hr", "company", "travel", "all", "expenses", "expense",
+        "someone", "person", "team", "everyone", "my", "our", "me", "report", "records",
+        "data", "active", "total", "summary", "mumbai", "delhi", "pune", "bangalore",
+        "flight", "hotel", "meals", "food", "transport", "supplies", "equipment",
+        "will", "bill", "mark", "standard", "staff", "workers", "worker", "employee", "employees"
+    }
+
+    if not is_all_employees:
+        candidate_emp = None
+        stop_prepositions = {"in", "at", "on", "during", "from", "between", "under", "with", "for", "of", "by", "and"}
+        month_names = {"january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"}
+
+        def _match_dataset_employee(cand_str: str) -> Optional[str]:
+            if not cand_str or not dataset_employees:
+                return None
+            cand_clean = cand_str.strip().lower()
+            # If candidate is a single-word month name followed by a year, it represents date range, not employee
+            if cand_clean in month_names:
+                if re.search(r'\b' + re.escape(cand_clean) + r'\s+\d{4}\b', req_clean, re.IGNORECASE):
+                    return None
+                if time_period_label and cand_clean == time_period_label.split()[0].lower():
+                    # If this single month is already the resolved date range and prompt doesn't contain a surname
+                    cand_words = cand_clean.split()
+                    if len(cand_words) == 1:
+                        return None
+
+            # 1. Exact full name match
+            for de in dataset_employees:
+                if de.strip().lower() == cand_clean:
+                    return de
+            # 2. Word boundary match (e.g. "Mark" -> "Mark Davis", "Will" -> "Will Smith")
+            for de in dataset_employees:
+                if re.search(r'\b' + re.escape(cand_clean) + r'\b', de.strip().lower()):
+                    return de
+            return None
+
+        # Attribution regex: "for Ravi Kumar", "of Priya Sharma", "by Amit"
+        match_for = re.search(r'\b(?:for|of|by)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)\b', req_clean, re.IGNORECASE)
+        if match_for:
+            raw_cand = match_for.group(1).strip()
+            cand_tokens = raw_cand.split()
+            while cand_tokens and cand_tokens[-1].lower() in stop_prepositions:
+                cand_tokens.pop()
+            if cand_tokens:
+                raw_cand = " ".join(cand_tokens)
+                cand_lower = raw_cand.lower()
+                cand_words = cand_lower.split()
+
+                # Step a: Check dataset_employees match BEFORE discarding based on ignore_words
+                matched_de = _match_dataset_employee(raw_cand)
+                if matched_de:
+                    candidate_emp = matched_de
+                else:
+                    # Discard candidate tokens only if the entire candidate string is in ignore_words
+                    # OR all candidate tokens are in ignore_words
+                    is_date_expr = cand_lower in month_names and re.search(r'\b' + re.escape(cand_lower) + r'\s+\d{4}\b', req_clean, re.I)
+                    if not is_date_expr and cand_lower not in ignore_words and not all(w in ignore_words for w in cand_words):
+                        candidate_emp = raw_cand.title()
+
+        # Possessive: "Priya's expenses"
+        if not candidate_emp:
+            match_poss = re.search(r'\b([A-Za-z]+(?:\s+[A-Za-z]+)?)\'s\b', req_clean, re.IGNORECASE)
+            if match_poss:
+                raw_poss = match_poss.group(1).strip()
+                cand_tokens = raw_poss.split()
+                while cand_tokens and cand_tokens[-1].lower() in stop_prepositions:
+                    cand_tokens.pop()
+                if cand_tokens:
+                    raw_poss = " ".join(cand_tokens)
+                    poss_lower = raw_poss.lower()
+                    poss_words = poss_lower.split()
+
+                    matched_de = _match_dataset_employee(raw_poss)
+                    if matched_de:
+                        candidate_emp = matched_de
+                    else:
+                        is_date_expr = poss_lower in month_names and re.search(r'\b' + re.escape(poss_lower) + r'\s+\d{4}\b', req_clean, re.I)
+                        if not is_date_expr and poss_lower not in ignore_words and not all(w in ignore_words for w in poss_words):
+                            candidate_emp = raw_poss.title()
+
+        # Resolve final employee
+        if candidate_emp:
+            # Explicit attribution preposition / possessive extracted:
+            # Fix 1b: Do NOT allow has_all_expenses to block employee matching!
+            if dataset_employees:
+                matched_de = _match_dataset_employee(candidate_emp)
+                final_employee = matched_de if matched_de else candidate_emp
+            else:
+                final_employee = candidate_emp
+        elif not is_all_employees and not has_all_expenses:
+            # Dynamic full-name matching with word boundaries from dataset_employees
+            if dataset_employees:
+                for de in dataset_employees:
+                    de_words = de.lower().split()
+                    if len(de_words) == 1 and de_words[0] in ignore_words:
+                        continue
+                    if re.search(r'\b' + re.escape(de.lower()) + r'\b', norm_prompt):
+                        final_employee = de
+                        break
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "time_period_label": time_period_label,
+        "expense_type": expense_type,
+        "employee": final_employee,
+        "category": category,
+        "merchant": None,
+        "location": location,
+        "raw_prompt": user_request,
+    }
+
+
+def _regex_extract_intent(user_request: str) -> dict:
+    """Regex-based fallback for intent extraction (100% backward compatible)."""
+    filters = extract_canonical_filters(user_request)
+    return {
+        "expense_type": filters.get("expense_type", "travel"),
+        "time_period": filters.get("time_period_label") or "last month",
+        "employee_name": filters.get("employee") or "",
+    }
+
+
+def explain_zero_match(
+    raw_expenses: List[Dict[str, Any]],
+    parsed_filters: ParsedFilters,
+    location_supported: bool = True,
+) -> str:
+    """Analyze which filter condition(s) caused the dataset to yield 0 records."""
+    if not raw_expenses:
+        return "The active dataset contains 0 total records."
+
+    start_date = parsed_filters.get("start_date")
+    end_date = parsed_filters.get("end_date")
+    employee = parsed_filters.get("employee")
+    expense_type = parsed_filters.get("expense_type")
+    category = parsed_filters.get("category")
+    location = parsed_filters.get("location")
+
+    reasons = []
+
+    # 1. Date Range
+    if start_date and end_date:
+        date_matches = [
+            e for e in raw_expenses
+            if (e.get("date") or e.get("expense_date")) and start_date <= str(e.get("date") or e.get("expense_date"))[:10] <= end_date
+        ]
+        if not date_matches:
+            valid_dates = [str(e.get("date") or e.get("expense_date"))[:10] for e in raw_expenses if (e.get("date") or e.get("expense_date"))]
+            min_d = min(valid_dates) if valid_dates else "N/A"
+            max_d = max(valid_dates) if valid_dates else "N/A"
+            reasons.append(
+                f"No records found between {start_date} and {end_date} (dataset dates range from {min_d} to {max_d})"
+            )
+
+    # 2. Employee
+    if employee:
+        emp_matches = [
+            e for e in raw_expenses
+            if e.get("employee") and employee.lower() in str(e.get("employee")).lower()
+        ]
+        if not emp_matches:
+            avail_emps = sorted(list({str(e.get("employee")) for e in raw_expenses if e.get("employee")}))
+            reasons.append(
+                f"No records found for employee '{employee}'" + (f" (available: {', '.join(avail_emps[:5])})" if avail_emps else "")
+            )
+
+    # 3. Category / Expense Type
+    if category:
+        cat_matches = [
+            e for e in raw_expenses
+            if str(e.get("category", "")).lower() == category.lower()
+        ]
+        if not cat_matches:
+            avail_cats = sorted(list({str(e.get("category")) for e in raw_expenses if e.get("category")}))
+            reasons.append(
+                f"No records found for category '{category}'" + (f" (available: {', '.join(avail_cats[:5])})" if avail_cats else "")
+            )
+    elif expense_type == "travel":
+        travel_cats = {"flight", "transport", "accommodation", "meals"}
+        travel_matches = [
+            e for e in raw_expenses
+            if str(e.get("category", "")).lower() in travel_cats
+        ]
+        if not travel_matches:
+            avail_cats = sorted(list({str(e.get("category")) for e in raw_expenses if e.get("category")}))
+            reasons.append(
+                f"No travel expenses found (available categories: {', '.join(avail_cats)})"
+            )
+
+    # 4. Location
+    if location:
+        if not location_supported:
+            reasons.append(
+                f"Location filtering was requested for '{location}', but the active dataset does not support location data"
+            )
+        else:
+            loc_matches = [
+                e for e in raw_expenses
+                if location.lower() in str(e.get("location") or e.get("city") or e.get("destination") or "").lower()
+            ]
+            if not loc_matches:
+                avail_locs = sorted(list({str(e.get("location") or e.get("city") or e.get("destination")) for e in raw_expenses if (e.get("location") or e.get("city") or e.get("destination"))}))
+                reasons.append(
+                    f"No records found for location '{location}'" + (f" (available: {', '.join(avail_locs[:5])})" if avail_locs else "")
+                )
+
+    if reasons:
+        return "Zero records matched: " + "; ".join(reasons) + "."
+    return f"No records matched the combined filter criteria for {expense_type} expenses ({start_date} to {end_date})."
+
+
 def _append_agent_log(state: AgentState, agent_name: str, message: str) -> list:
     """Helper to append structured agent log."""
     logs = list(state.get("agent_logs") or [])
@@ -210,15 +523,19 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
     Agent 1: Expense Analysis Agent.
     
     Responsibilities:
-    1. Parse natural-language user request (LLM / regex fallback).
-    2. Synchronize active input or retrieve from SQLite persistent memory.
-    3. Dynamically discover and filter matching records by date, employee, and type.
-    4. Categorize records using rule-based inference.
-    5. Emit structured analysis output for downstream agents.
+    1. Parse natural-language user request using canonical filters (zero state leakage).
+    2. Synchronize active input or retrieve from SQLite persistent memory scoped to dataset.
+    3. Normalize location columns and detect location support.
+    4. Dynamically discover and filter matching records by date, employee, category, and location.
+    5. Provide diagnostic zero-match explanation when zero records match.
+    6. Categorize records using rule-based inference.
+    7. Emit structured analysis output for downstream agents.
     """
     user_request = state.get("user_request", "").strip()
     status = list(state.get("workflow_status") or [])
     report_run_id = state.get("report_run_id") or f"REP-{uuid.uuid4().hex[:10]}"
+    dataset_id = state.get("dataset_id")
+    dataset_version = state.get("dataset_version")
 
     if not user_request:
         return {
@@ -227,17 +544,7 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
             "validation_status": "Needs Human Review",
         }
 
-    # 1. Parse Intent & Dates
-    intent = _llm_extract_intent(user_request)
-    time_period = intent.get("time_period", "last month")
-    start_date, end_date = _resolve_date_range(time_period)
-    expense_type = intent.get("expense_type", "travel")
-    target_employee = intent.get("employee_name", "").strip()
-    employee_name = target_employee if target_employee else state.get("employee_name", "").strip()
-
-    status.append(f"🤖 [Expense Analysis Agent] Request parsed: {expense_type.title()} expenses for {time_period}")
-
-    # 2. Ingestion & Retrieval from Persistent Memory DB
+    # 1. Ingestion & Retrieval from Persistent Memory DB / Active Input
     data_source = "csv_file"
     raw_expenses = []
 
@@ -246,16 +553,59 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
         if state.get("expenses") and len(state.get("expenses")) > 0:
             raw_expenses = state["expenses"]
             data_source = state.get("data_source", "interactive_editor")
-            # Persist to SQLite memory
-            save_res = save_expenses(raw_expenses, source_name="active_session")
+            # Persist to SQLite memory scoped to active dataset
+            save_res = save_expenses(
+                raw_expenses,
+                dataset_id=dataset_id,
+                dataset_version=dataset_version,
+                source_name="active_session",
+            )
             raw_expenses = save_res["records"]
+            if not dataset_id:
+                dataset_id = save_res.get("dataset_id")
+            if dataset_version is None:
+                dataset_version = save_res.get("dataset_version")
+        elif dataset_id:
+            # First check if persistent memory already has records for this dataset
+            db_recs = retrieve_expenses_from_db(
+                dataset_id=dataset_id,
+                dataset_version=dataset_version,
+                include_excluded=True,
+            )
+            if db_recs:
+                raw_expenses = db_recs
+                data_source = "memory_db"
+            else:
+                csv_path = os.getenv("EXPENSE_CSV_PATH", "data/expenses.csv")
+                loaded = get_expenses(csv_path)
+                save_res = save_expenses(
+                    loaded,
+                    dataset_id=dataset_id,
+                    dataset_version=dataset_version,
+                    source_name=os.path.basename(csv_path),
+                )
+                raw_expenses = save_res["records"]
+                data_source = "memory_db"
+                if not dataset_id:
+                    dataset_id = save_res.get("dataset_id")
+                if dataset_version is None:
+                    dataset_version = save_res.get("dataset_version")
         else:
             # Load from default CSV and persist to memory DB
             csv_path = os.getenv("EXPENSE_CSV_PATH", "data/expenses.csv")
             loaded = get_expenses(csv_path)
-            save_res = save_expenses(loaded, source_name=os.path.basename(csv_path))
+            save_res = save_expenses(
+                loaded,
+                dataset_id=dataset_id,
+                dataset_version=dataset_version,
+                source_name=os.path.basename(csv_path),
+            )
             raw_expenses = save_res["records"]
             data_source = "memory_db"
+            if not dataset_id:
+                dataset_id = save_res.get("dataset_id")
+            if dataset_version is None:
+                dataset_version = save_res.get("dataset_version")
 
         status.append(f"✓ [Expense Analysis Agent] Retrieved {len(raw_expenses)} records from persistent memory ({data_source})")
     except Exception as e:
@@ -266,55 +616,69 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
             "validation_status": "Needs Human Review",
         }
 
-    # 3. Dynamic Employee Discovery
+    # 2. Location Schema Normalization
+    raw_expenses, location_supported = normalize_expense_columns(raw_expenses)
+
+    # 3. Dynamic Employee Discovery from Dataset
     dataset_employees = sorted(list({
         str(exp.get("employee", "")).strip()
         for exp in raw_expenses
         if exp.get("employee") and str(exp.get("employee", "")).strip()
     }))
 
-    user_req_lower = user_request.lower()
-    if not target_employee:
-        for de in dataset_employees:
-            if de.lower() in user_req_lower:
-                target_employee = de
-                employee_name = de
-                status.append(f"✓ [Expense Analysis Agent] Dynamic employee matched: {de}")
-                break
-            first_name = de.split()[0].lower()
-            if len(first_name) >= 3 and re.search(r'\b' + re.escape(first_name) + r'\b', user_req_lower):
-                target_employee = de
-                employee_name = de
-                status.append(f"✓ [Expense Analysis Agent] Dynamic employee matched: {de}")
-                break
-    elif target_employee:
-        for de in dataset_employees:
-            if de.lower() == target_employee.lower() or target_employee.lower() in de.lower():
-                target_employee = de
-                employee_name = de
-                break
+    # 4. Canonical Intent & Filter Extraction (Zero State Leakage)
+    # Target employee is derived strictly from user_request & dataset_employees, NEVER leaked from state
+    parsed_filters = extract_canonical_filters(user_request, dataset_employees=dataset_employees)
+    start_date = parsed_filters.get("start_date")
+    end_date = parsed_filters.get("end_date")
+    expense_type = parsed_filters.get("expense_type", "travel")
+    time_period = parsed_filters.get("time_period_label")
+    target_employee = parsed_filters.get("employee")
+    employee_name = target_employee or ""
+    category = parsed_filters.get("category")
+    location = parsed_filters.get("location")
 
-    # 4. Filter Expenses Deterministically
+    time_disp = f" for {time_period}" if time_period and str(time_period).lower() not in ("all", "all dates", "all time") else ""
+    emp_disp = f" ({target_employee})" if target_employee else ""
+    status.append(f"🤖 [Expense Analysis Agent] Request parsed: {expense_type.title()} expenses{time_disp}{emp_disp}")
+    if target_employee:
+        status.append(f"✓ [Expense Analysis Agent] Dynamic employee matched: {target_employee}")
+
+    # 5. Filter Expenses Deterministically
     filtered = filter_expenses(
         expenses=raw_expenses,
         start_date=start_date,
         end_date=end_date,
         expense_type=expense_type,
         employee_name=target_employee if target_employee else None,
+        category=category,
+        location=location,
+        location_supported=location_supported,
     )
+    filter_match_count = len(filtered)
 
+    # 6. Zero-Match Diagnostic Handling
     if not filtered:
-        emp_msg = f" for {target_employee}" if target_employee else ""
-        err_msg = f"No {expense_type} expenses found{emp_msg} between {start_date} and {end_date}."
-        status.append(f"⚠ [Expense Analysis Agent] {err_msg}")
+        zero_match_explanation = explain_zero_match(
+            raw_expenses=raw_expenses,
+            parsed_filters=parsed_filters,
+            location_supported=location_supported,
+        )
+        status.append(f"⚠️ [Expense Analysis Agent] {zero_match_explanation}")
         return {
-            "error": err_msg,
+            "error": zero_match_explanation,
             "filtered_expenses": [],
+            "parsed_filters": parsed_filters,
+            "dataset_id": dataset_id,
+            "dataset_version": dataset_version,
+            "filter_match_count": 0,
+            "zero_match_explanation": zero_match_explanation,
+            "location_supported": location_supported,
             "workflow_status": status,
             "validation_status": "Needs Human Review",
         }
 
-    # 5. Categorize Expenses
+    # 7. Categorize Expenses
     categorized = categorize_expenses(filtered)
     status.append(f"✓ [Expense Analysis Agent] Categorized {len(categorized)} relevant expenses")
 
@@ -333,7 +697,7 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
     else:
         emp_name = employee_name or "Employee"
 
-    # 6. Structured Output
+    # 8. Structured Output
     expense_analysis = {
         "agent": "Expense Analysis Agent",
         "status": "completed",
@@ -359,11 +723,17 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
 
     return {
         "report_run_id": report_run_id,
+        "dataset_id": dataset_id,
+        "dataset_version": dataset_version,
         "start_date": start_date,
         "end_date": end_date,
         "expense_type": expense_type,
         "employee_name": emp_name,
         "target_employee": target_employee,
+        "parsed_filters": parsed_filters,
+        "filter_match_count": filter_match_count,
+        "zero_match_explanation": None,
+        "location_supported": location_supported,
         "data_source": data_source,
         "expenses": raw_expenses,
         "filtered_expenses": filtered,
@@ -389,31 +759,98 @@ def validation_agent_node(state: AgentState) -> dict:
     3. Persist identified issues into SQLite memory.
     4. Determine whether Human-in-the-Loop review is required.
     """
-    if state.get("error"):
-        return {}
-
     categorized = state.get("categorized_expenses") or []
     status = list(state.get("workflow_status") or [])
+
+    if state.get("error") and not categorized:
+        status.append("🤖 [Validation Agent] Analysis produced error or zero records; audit skipped.")
+        return {"workflow_status": status}
+
     status.append("🤖 [Validation Agent] Commencing compliance & transaction audit...")
 
     # Validate all transactions
     issues = validate_expenses(categorized)
 
-    # Persist issues to SQLite memory
-    saved_issues = save_validation_issues(issues)
+    # Persist issues to SQLite memory scoped to dataset_id and version
+    saved_issues = save_validation_issues(
+        issues,
+        dataset_id=state.get("dataset_id"),
+        dataset_version=state.get("dataset_version"),
+    )
 
-    requires_review = len(issues) > 0
-    val_status = "Needs Human Review" if requires_review else "Clear"
+    # 1. Classify saved issues from persistent memory
+    unresolved_issues = [
+        iss for iss in saved_issues
+        if iss.get("status") == "unresolved"
+    ]
+    accepted_exceptions = [
+        iss for iss in saved_issues
+        if iss.get("status") == "accepted_exception" or iss.get("reviewer_decision") == "accept_exception"
+    ]
+    excluded_issues = [
+        iss for iss in saved_issues
+        if iss.get("status") == "excluded" or iss.get("reviewer_decision") in ("exclude", "exclude_single", "excluded")
+    ]
 
+    # 2. Filter out pre-excluded transactions from categorized expenses
+    excluded_ids = {iss.get("record_id") or iss.get("expense_record_id") for iss in excluded_issues}
+    for exp in categorized:
+        if exp.get("is_excluded") in (1, True, "1", "true"):
+            excluded_ids.add(exp.get("record_id"))
+
+    if excluded_ids:
+        categorized = [
+            exp for exp in categorized
+            if (exp.get("record_id") not in excluded_ids and exp.get("is_excluded") not in (1, True, "1", "true"))
+        ]
+        unresolved_issues = [
+            iss for iss in unresolved_issues
+            if (iss.get("record_id") not in excluded_ids and iss.get("expense_record_id") not in excluded_ids)
+        ]
+        status.append(f"✓ [Validation Agent] Omitted {len(excluded_ids)} pre-excluded record(s) from report.")
+
+    # 3. Synchronize persistent reviewer decisions into state
+    human_decisions = list(state.get("human_decisions") or [])
+    for exc in accepted_exceptions:
+        rec_id = exc.get("record_id") or exc.get("expense_record_id")
+        notes = exc.get("reviewer_notes") or f"Pre-authorized managerial exception for {rec_id}"
+        if not any(d.get("record_id") == rec_id for d in human_decisions):
+            human_decisions.append({
+                "action": "accepted_exception",
+                "record_id": rec_id,
+                "accepted_count": 1,
+                "reason": notes,
+                "notes": notes,
+                "timestamp": datetime.now().isoformat(),
+            })
+
+    for exc in excluded_issues:
+        rec_id = exc.get("record_id") or exc.get("expense_record_id")
+        if not any(d.get("record_id") == rec_id for d in human_decisions):
+            human_decisions.append({
+                "action": "exclude_single",
+                "record_id": rec_id,
+                "timestamp": datetime.now().isoformat(),
+            })
+
+    # 4. Determine if Human-in-the-Loop review is required
+    requires_review = len(unresolved_issues) > 0
     if requires_review:
-        status.append(f"⚠ [Validation Agent] Flagged {len(issues)} issue(s) requiring human review.")
+        val_status = "Needs Human Review"
+        status.append(f"⚠️ [Validation Agent] Flagged {len(unresolved_issues)} issue(s) requiring human review.")
+    elif accepted_exceptions:
+        val_status = "Reviewed with Exceptions"
+        status.append(f"✓ [Validation Agent] {len(accepted_exceptions)} exception(s) pre-authorized in persistent memory. Proceeding without interruption.")
     else:
+        val_status = "Clear"
         status.append("✓ [Validation Agent] Zero validation discrepancies found. Clean bill of health.")
 
     validation_findings = {
         "agent": "Validation Agent",
         "status": "completed",
-        "total_issues": len(issues),
+        "total_issues": len(saved_issues),
+        "unresolved_count": len(unresolved_issues),
+        "accepted_exceptions_count": len(accepted_exceptions),
         "requires_human_review": requires_review,
         "issues": saved_issues,
         "audit_timestamp": datetime.now().isoformat(),
@@ -422,15 +859,17 @@ def validation_agent_node(state: AgentState) -> dict:
     logs = _append_agent_log(
         state,
         "Validation Agent",
-        f"Audit completed: {len(issues)} issues detected. Status: {val_status}"
+        f"Audit completed: {len(unresolved_issues)} unresolved issues, {len(accepted_exceptions)} pre-authorized exceptions. Status: {val_status}"
     )
 
     return {
-        "missing_data": issues,
-        "validation_findings": issues,
-        "unresolved_count": len(issues),
+        "categorized_expenses": categorized,
+        "missing_data": unresolved_issues,
+        "validation_findings": saved_issues,
+        "unresolved_count": len(unresolved_issues),
         "validation_status": val_status,
         "awaiting_input": "missing_data" if requires_review else "",
+        "human_decisions": human_decisions,
         "agent_logs": logs,
         "workflow_status": status,
     }
@@ -476,7 +915,96 @@ def human_review_node(state: AgentState) -> dict:
     human_decisions = list(state.get("human_decisions") or [])
     resp_str = str(user_response).lower().strip()
 
-    # Case 1: Exclude flagged records
+    # Case 0: Exclude single record
+    if isinstance(user_response, dict) and user_response.get("action") == "exclude_single":
+        rec_id = user_response.get("record_id")
+        categorized = state.get("categorized_expenses") or []
+        cleaned = [exp for exp in categorized if exp.get("record_id") != rec_id]
+
+        apply_reviewer_decision(
+            action="exclude",
+            record_id=rec_id,
+            dataset_id=state.get("dataset_id"),
+            dataset_version=state.get("dataset_version"),
+            reason="Excluded by reviewer during HITL review",
+        )
+
+        for m in missing:
+            if m.get("record_id") == rec_id:
+                issue_id = m.get("issue_id")
+                if issue_id:
+                    resolve_validation_issue(issue_id, decision="excluded", notes="Excluded by reviewer during HITL review")
+
+        remaining_missing = [m for m in missing if m.get("record_id") != rec_id]
+        human_decisions.append({
+            "action": "exclude_single",
+            "record_id": rec_id,
+            "timestamp": datetime.now().isoformat(),
+        })
+        status.append(f"✓ [Human Review] Excluded record {rec_id} from counting and report.")
+        logs = _append_agent_log(state, "Human Review", f"Excluded record {rec_id} from calculations.")
+
+        val_status = "Clear" if len(remaining_missing) == 0 else "Needs Human Review"
+        awaiting = "" if len(remaining_missing) == 0 else "missing_data"
+
+        return {
+            "categorized_expenses": cleaned,
+            "missing_data": remaining_missing,
+            "unresolved_count": len(remaining_missing),
+            "human_response": "exclude_single",
+            "human_decisions": human_decisions,
+            "validation_status": val_status,
+            "awaiting_input": awaiting,
+            "workflow_status": status,
+            "agent_logs": logs,
+        }
+
+    # Case 0B: Accept single record exception
+    if isinstance(user_response, dict) and user_response.get("action") in ("accept_single", "accept_exception"):
+        rec_id = user_response.get("record_id")
+        reason = user_response.get("reason", "Authorized managerial exception approved during HITL review")
+
+        apply_reviewer_decision(
+            action="accept_exception",
+            record_id=rec_id,
+            dataset_id=state.get("dataset_id"),
+            dataset_version=state.get("dataset_version"),
+            reason=reason,
+        )
+
+        for m in missing:
+            if m.get("record_id") == rec_id:
+                issue_id = m.get("issue_id")
+                if issue_id:
+                    resolve_validation_issue(issue_id, decision="accepted_exception", notes=reason)
+
+        remaining_missing = [m for m in missing if m.get("record_id") != rec_id]
+        human_decisions.append({
+            "action": "accepted_exception",
+            "record_id": rec_id,
+            "accepted_count": 1,
+            "reason": reason,
+            "notes": reason,
+            "timestamp": datetime.now().isoformat(),
+        })
+        status.append(f"✓ [Human Review] Authorized managerial exception for record {rec_id}.")
+        logs = _append_agent_log(state, "Human Review", f"Authorized managerial exception for {rec_id}.")
+
+        val_status = "Reviewed with Exceptions" if len(remaining_missing) == 0 else "Needs Human Review"
+        awaiting = "" if len(remaining_missing) == 0 else "missing_data"
+
+        return {
+            "missing_data": remaining_missing,
+            "unresolved_count": len(remaining_missing),
+            "human_response": "accept_single",
+            "human_decisions": human_decisions,
+            "validation_status": val_status,
+            "awaiting_input": awaiting,
+            "workflow_status": status,
+            "agent_logs": logs,
+        }
+
+    # Case 1: Exclude all flagged records
     if "exclude" in resp_str:
         flagged_rec_ids = {m.get("record_id") for m in missing if m.get("record_id")}
         categorized = state.get("categorized_expenses") or []
@@ -484,6 +1012,15 @@ def human_review_node(state: AgentState) -> dict:
             exp for exp in categorized
             if exp.get("record_id") not in flagged_rec_ids
         ]
+
+        for rid in flagged_rec_ids:
+            apply_reviewer_decision(
+                action="exclude",
+                record_id=rid,
+                dataset_id=state.get("dataset_id"),
+                dataset_version=state.get("dataset_version"),
+                reason="Excluded by reviewer during HITL review",
+            )
 
         for m in missing:
             issue_id = m.get("issue_id")
@@ -518,7 +1055,12 @@ def human_review_node(state: AgentState) -> dict:
         updates = user_response.get("updates", {})
 
         if rec_id and updates:
-            update_expense_record(rec_id, updates)
+            update_expense_record(
+                rec_id,
+                updates,
+                dataset_id=state.get("dataset_id"),
+                dataset_version=state.get("dataset_version"),
+            )
             # Update in active categorized list
             categorized = state.get("categorized_expenses") or []
             for exp in categorized:
@@ -543,6 +1085,15 @@ def human_review_node(state: AgentState) -> dict:
     # Case 3: Accept exceptions / Include
     else:
         for m in missing:
+            rid = m.get("record_id")
+            if rid:
+                apply_reviewer_decision(
+                    action="accept_exception",
+                    record_id=rid,
+                    dataset_id=state.get("dataset_id"),
+                    dataset_version=state.get("dataset_version"),
+                    reason="Authorized exception accepted by reviewer during HITL review",
+                )
             issue_id = m.get("issue_id")
             if issue_id:
                 resolve_validation_issue(
@@ -591,7 +1142,7 @@ def revalidation_node(state: AgentState) -> dict:
             "workflow_status": status,
         }
     else:
-        status.append(f"⚠ [Validation Agent] Revalidation found {len(remaining_issues)} remaining issue(s).")
+        status.append(f"⚠️ [Validation Agent] Revalidation found {len(remaining_issues)} remaining issue(s).")
         return {
             "missing_data": remaining_issues,
             "validation_findings": remaining_issues,
@@ -679,7 +1230,7 @@ def report_generation_agent_node(state: AgentState) -> dict:
     report_record = {
         "report_id": report_run_id,
         "user_request": state.get("user_request", ""),
-        "filters": {
+        "filters": state.get("parsed_filters") or {
             "start_date": start_date,
             "end_date": end_date,
             "expense_type": state.get("expense_type", "travel"),
@@ -692,13 +1243,20 @@ def report_generation_agent_node(state: AgentState) -> dict:
         "report_file_path": pdf_path,
         "human_review_status": "Completed" if human_decisions else "Not Required",
     }
-    save_report_run(report_record)
+    save_report_run(
+        report_record,
+        dataset_id=state.get("dataset_id"),
+        dataset_version=state.get("dataset_version"),
+    )
     status.append(f"✓ [Report Generation Agent] Persisted report run {report_run_id} to SQLite memory.")
 
     report_payload = {
         "agent": "Report Generation Agent",
         "status": "completed",
         "report_run_id": report_run_id,
+        "dataset_id": state.get("dataset_id"),
+        "dataset_version": state.get("dataset_version"),
+        "parsed_filters": state.get("parsed_filters"),
         "grand_total": grand_total,
         "transaction_count": totals.get("transaction_count", 0),
         "validation_status": val_status,
@@ -763,6 +1321,8 @@ def route_after_human_review(state: AgentState) -> str:
     """Route after Human Review: if correction made, revalidate; otherwise proceed."""
     if state.get("error"):
         return "complete"
+    if state.get("awaiting_input") == "missing_data":
+        return "human_review_node"
     if state.get("human_response") == "correct":
         return "revalidation_node"
     return "report_generation_agent"
@@ -820,6 +1380,7 @@ def build_agent_graph():
         "human_review_node",
         route_after_human_review,
         {
+            "human_review_node": "human_review_node",
             "revalidation_node": "revalidation_node",
             "report_generation_agent": "report_generation_agent",
             "complete": "complete",
@@ -844,14 +1405,17 @@ def build_agent_graph():
 def get_compiled_graph():
     """
     Return a compiled LangGraph with SQLite checkpointer for state persistence.
-    Workflow checkpoints are kept in .checkpoints/agent_state.db.
+    Workflow checkpoints are kept in .checkpoints/agent_state.db (or AGENT_CHECKPOINT_DB_PATH).
     """
     import sqlite3
 
     builder = build_agent_graph()
 
-    os.makedirs(".checkpoints", exist_ok=True)
-    conn = sqlite3.connect(".checkpoints/agent_state.db", check_same_thread=False)
+    checkpoint_path = os.getenv("AGENT_CHECKPOINT_DB_PATH", os.path.join(".checkpoints", "agent_state.db"))
+    checkpoint_dir = os.path.dirname(checkpoint_path)
+    if checkpoint_dir:
+        os.makedirs(checkpoint_dir, exist_ok=True)
+    conn = sqlite3.connect(checkpoint_path, check_same_thread=False)
     checkpointer = SqliteSaver(conn)
 
     return builder.compile(checkpointer=checkpointer), checkpointer

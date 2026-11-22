@@ -34,6 +34,20 @@ def calculate_totals(expenses: list[dict]) -> dict:
     
     df = pd.DataFrame(expenses)
     
+    # Exclude records marked as is_excluded
+    if "is_excluded" in df.columns:
+        df = df[~df["is_excluded"].isin([1, True, "1", "true"])]
+
+    if df.empty:
+        return {
+            "category_totals": {},
+            "grand_total": 0.0,
+            "transaction_count": 0,
+            "missing_receipt_total": 0.0,
+            "category_counts": {},
+            "employee_breakdown": {},
+        }
+    
     # Ensure amount is numeric
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
     

@@ -6,15 +6,10 @@ Unit and Integration Tests for:
 """
 
 import os
-import sys
-import io
 import shutil
 import tempfile
 import unittest
 from datetime import datetime
-
-# Enforce UTF-8 stdout
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 from tools.memory_tools import (
     init_memory_db,
@@ -364,7 +359,6 @@ class TestMultiAgentCollaboration(unittest.TestCase):
             "workflow_status": [],
             "human_response": "exclude",
         }
-        # Simulate excluding flagged records directly
         flagged_rec_ids = {m.get("record_id") for m in issues}
         cleaned = [e for e in self.discrepancy_expenses if e.get("record_id") not in flagged_rec_ids]
 
@@ -380,7 +374,6 @@ class TestMultiAgentCollaboration(unittest.TestCase):
             "missing_data": saved_issues,
             "workflow_status": [],
         }
-        # In a real run, user selects 'include'
         for m in saved_issues:
             resolve_validation_issue(
                 m["issue_id"], decision="accepted_exception", notes="Approved exception", db_path=self.db_path
