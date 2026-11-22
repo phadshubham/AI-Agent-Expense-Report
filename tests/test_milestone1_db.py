@@ -60,7 +60,10 @@ class TestSafeMigration(unittest.TestCase):
         self.test_db_path = os.path.join(self.temp_dir, "migrated_expense_memory.db")
 
         # Copy existing database to temp location
-        if os.path.exists(self.prod_db_path):
+        baseline_v1 = os.path.join("data", "legacy_v1_baseline.db")
+        if os.path.exists(baseline_v1):
+            shutil.copy2(baseline_v1, self.test_db_path)
+        elif os.path.exists(self.prod_db_path):
             shutil.copy2(self.prod_db_path, self.test_db_path)
             # Record initial production hash to ensure zero corruption of prod file
             with open(self.prod_db_path, "rb") as f:

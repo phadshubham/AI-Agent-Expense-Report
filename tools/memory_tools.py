@@ -20,6 +20,7 @@ import uuid
 import math
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Tuple
+from collections import defaultdict
 
 
 DEFAULT_MEMORY_DB_PATH = os.path.join("data", "expense_memory.db")
@@ -935,9 +936,9 @@ def get_audit_events(
 # Expense Persistence & Scoped Retrieval
 # =====================================================================
 
-def _generate_record_id(record: Dict[str, Any], source: str, row_idx: int) -> str:
-    """Generate a deterministic record identifier."""
-    val_str = f"{source}:{row_idx}:{_sanitize_text(record.get('employee', ''))}:{_sanitize_text(record.get('date', ''))}:{_sanitize_text(record.get('merchant', ''))}:{_sanitize_amount(record.get('amount', 0), allow_none=False)}"
+def _generate_record_id(record: Dict[str, Any], scope: str, row_idx: int) -> str:
+    """Generate a deterministic record identifier scoped to dataset or source."""
+    val_str = f"{scope}:{row_idx}:{_sanitize_text(record.get('employee', ''))}:{_sanitize_text(record.get('date', ''))}:{_sanitize_text(record.get('merchant', ''))}:{_sanitize_amount(record.get('amount', 0), allow_none=False)}"
     h = hashlib.sha256(val_str.encode("utf-8")).hexdigest()[:12]
     return f"EXP-{h}"
 
@@ -1026,10 +1027,22 @@ def save_expenses(
         existing_batch = cursor.fetchone()
         batch_id = existing_batch["batch_id"] if existing_batch else str(uuid.uuid4())
 
+        # Build existing row cache for dataset and version to prevent duplication
+        cursor.execute(
+            "SELECT id, record_id, is_excluded, expense_date, employee, description, merchant, amount FROM expenses_v2 WHERE dataset_id = ? AND dataset_version = ?",
+            (dataset_id, dataset_version),
+        )
+        existing_rows = cursor.fetchall()
+        existing_by_id = {r["record_id"]: dict(r) for r in existing_rows}
+        pool_by_sig = defaultdict(list)
+        for r in existing_rows:
+            sig = (r["expense_date"], r["employee"], r["description"], r["merchant"], r["amount"])
+            pool_by_sig[sig].append(dict(r))
+
+        scope_key = dataset_id if dataset_id else source_name
         for idx, raw_exp in enumerate(expenses):
             exp = dict(raw_exp)
-            rec_id = exp.get("record_id") or _generate_record_id(exp, source_name, idx)
-            exp["record_id"] = rec_id
+            passed_id = exp.get("record_id")
 
             # Null-resilient sanitization
             exp_date = _sanitize_date(exp.get("date") if exp.get("date") is not None else exp.get("expense_date"))
@@ -1057,17 +1070,25 @@ def save_expenses(
             payment_method = _sanitize_text(exp.get("payment_method", "")) or None
             is_excluded = 1 if exp.get("is_excluded") in (1, True, "1", "true") else 0
 
-            # Check if this record_id already exists in expenses_v2 for this dataset and version
-            cursor.execute(
-                "SELECT id, is_excluded FROM expenses_v2 WHERE dataset_id = ? AND dataset_version = ? AND record_id = ?",
-                (dataset_id, dataset_version, rec_id),
-            )
-            exists = cursor.fetchone()
+            # Match strategy: 1) by record_id if known, 2) by content signature pool
+            matched = None
+            if passed_id and passed_id in existing_by_id:
+                matched = existing_by_id[passed_id]
+                rec_id = passed_id
+            else:
+                sig = (exp_date, emp_name, desc, merchant, amt)
+                if pool_by_sig.get(sig):
+                    matched = pool_by_sig[sig].pop(0)
+                    rec_id = matched["record_id"]
+                else:
+                    rec_id = passed_id or _generate_record_id(exp, scope_key, idx)
 
-            if exists:
+            exp["record_id"] = rec_id
+
+            if matched:
                 skipped_count += 1
                 if "is_excluded" not in exp:
-                    is_excluded = exists["is_excluded"]
+                    is_excluded = matched["is_excluded"]
             else:
                 cursor.execute(
                     """
@@ -1100,6 +1121,7 @@ def save_expenses(
                     ),
                 )
                 inserted_count += 1
+                existing_by_id[rec_id] = {"id": cursor.lastrowid, "record_id": rec_id, "is_excluded": is_excluded}
 
             enriched_records.append({
                 "record_id": rec_id,

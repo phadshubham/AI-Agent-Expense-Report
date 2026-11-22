@@ -249,7 +249,7 @@ st.markdown("""
         backdrop-filter: blur(4px);
     }
 
-    /* Metric Cards */
+    /* Metric Cards & Hover Delight */
     .fin-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
@@ -257,6 +257,11 @@ st.markdown("""
         padding: 1.25rem;
         margin-bottom: 1rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+    }
+    .fin-card:hover {
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+        border-color: #cbd5e1;
     }
     .metric-ribbon {
         display: grid;
@@ -270,6 +275,11 @@ st.markdown("""
         border-radius: 10px;
         padding: 1rem 1.25rem;
         border-left: 4px solid var(--brand-primary);
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .metric-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
     }
     .metric-label {
         font-size: 0.8rem;
@@ -291,7 +301,26 @@ st.markdown("""
         margin-top: 0.2rem;
     }
 
-    /* Agent Stage Tracker Cards */
+    /* Tactile Button Feedback */
+    div[data-testid="stButton"] > button {
+        transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease, background-color 0.15s ease !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+    }
+    div[data-testid="stButton"] > button:hover {
+        transform: translateY(-1.5px);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+    }
+    div[data-testid="stButton"] > button:active {
+        transform: translateY(1px) !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12) !important;
+    }
+
+    /* Agent Stage Tracker Cards & Pulse Animation */
+    @keyframes pulse-agent-active {
+        0%, 100% { box-shadow: 0 0 0 1px #3b82f6, 0 2px 8px rgba(59, 130, 246, 0.2); }
+        50% { box-shadow: 0 0 0 2px #2563eb, 0 4px 16px rgba(37, 99, 235, 0.35); }
+    }
     .agent-tracker-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -304,11 +333,15 @@ st.markdown("""
         border-radius: 10px;
         padding: 0.9rem 1.1rem;
         position: relative;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .agent-step:hover {
+        border-color: #cbd5e1;
     }
     .agent-step.active {
-        border-color: #3b82f6;
-        background: #eff6ff;
-        box-shadow: 0 0 0 1px #3b82f6;
+        border-color: #2563eb !important;
+        background: #eff6ff !important;
+        animation: pulse-agent-active 2.2s infinite ease-in-out;
     }
     .agent-step.completed {
         border-color: #a7f3d0;
@@ -330,6 +363,46 @@ st.markdown("""
         font-size: 0.78rem;
         color: #64748b;
         line-height: 1.35;
+    }
+
+    /* Clean Audit Celebration Banner */
+    .clean-audit-banner {
+        background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+        border: 1px solid #a7f3d0;
+        border-left: 5px solid #059669;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        margin: 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 1px 3px rgba(5, 150, 105, 0.08);
+    }
+    .clean-audit-banner-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #065f46;
+        margin-bottom: 0.2rem;
+    }
+    .clean-audit-banner-sub {
+        font-size: 0.82rem;
+        color: #047857;
+    }
+
+    /* Table Health Ribbon */
+    .table-health-ribbon {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.55rem 0.9rem;
+        margin-bottom: 0.65rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        font-size: 0.82rem;
+        color: #475569;
+        font-variant-numeric: tabular-nums;
+        align-items: center;
     }
 
     /* Status Badges */
@@ -722,7 +795,7 @@ with nav_tab1:
                             schema={"columns": list(df_up.columns)},
                         )
                         set_active_dataset(new_ds["dataset_id"])
-                        save_expenses(
+                        save_res = save_expenses(
                             expenses=up_records,
                             dataset_id=new_ds["dataset_id"],
                             dataset_version=1,
@@ -731,7 +804,7 @@ with nav_tab1:
                         st.session_state["active_dataset_id"] = new_ds["dataset_id"]
                         st.session_state["active_dataset_name"] = new_ds["name"]
                         st.session_state["active_dataset_version"] = 1
-                        st.session_state["custom_expenses_list"] = up_records
+                        st.session_state["custom_expenses_list"] = save_res["records"]
                         st.success(f"✓ Ingested and activated '{uploaded_file.name}' with {len(up_records)} transactions.")
                         st.rerun()
                     except Exception as ex:
@@ -766,6 +839,24 @@ with nav_tab1:
         if not display_cols:
             display_cols = list(df_editor_input.columns)
         df_editor_display = df_editor_input[display_cols]
+
+        # Real-time Table Health Summary Ribbon (Delight & Reassurance)
+        total_rows = len(df_editor_display)
+        # Calculate sum of valid numeric amounts
+        amt_numeric = pd.to_numeric(df_editor_display["amount"], errors="coerce")
+        live_sum = amt_numeric.dropna().sum()
+        missing_receipt_count = (df_editor_display["receipt_status"].astype(str).str.lower() == "missing").sum() if "receipt_status" in df_editor_display.columns else 0
+        null_amt_count = amt_numeric.isna().sum()
+
+        st.markdown(f"""
+        <div class="table-health-ribbon">
+            <span>📋 <strong>{total_rows}</strong> Transactions in Active Copy</span>
+            <span>💰 Live Total: <strong>₹{live_sum:,.2f}</strong></span>
+            <span>🧾 Missing Receipts: <strong style="color:{'#dc2626' if missing_receipt_count > 0 else '#059669'};">{missing_receipt_count}</strong></span>
+            <span>⚠️ Null Amounts: <strong style="color:{'#dc2626' if null_amt_count > 0 else '#059669'};">{null_amt_count}</strong></span>
+            <span style="margin-left:auto; color:#94a3b8; font-size:0.75rem;">Interactive Grid &bull; Edits reflect immediately in workflow</span>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         df_editor_display = pd.DataFrame(columns=[
             "record_id", "date", "employee", "description", "merchant", "category", "amount", "receipt_status", "location"
@@ -790,6 +881,7 @@ with nav_tab1:
             )
             st.session_state["custom_expenses_list"] = clean_edited
             st.session_state["active_dataset_version"] = new_v
+            st.toast(f"💾 Saved {len(clean_edited)} records under Version v{new_v}", icon="📦")
             st.success(f"✓ Saved {len(clean_edited)} records under Version v{new_v} in SQLite persistent memory.")
             st.rerun()
 
@@ -805,7 +897,13 @@ with nav_tab1:
 
     # 2. Request Formulation
     st.markdown("#### 💬 Request Formulation")
-    st.caption("Enter your expense request in natural language:")
+    st.markdown(
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">'
+        '<span style="font-size:0.85rem; color:#64748b;">Enter your expense request in natural language:</span>'
+        '<span style="font-size:0.75rem; color:#94a3b8; background:#f1f5f9; padding:2px 8px; border-radius:4px; border:1px solid #e2e8f0;">Ctrl+Enter to submit</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
     user_req = st.text_area(
         "Request Description",
@@ -866,6 +964,11 @@ with nav_tab1:
                     st.session_state["pdf_path"] = result.get("pdf_path")
                     st.session_state["totals"] = result.get("totals")
                     st.session_state["phase"] = "complete"
+                    val_s = str(result.get("validation_status", "Clear")).lower()
+                    if "clear" in val_s:
+                        st.toast("✨ Audit Verified: Zero compliance discrepancies detected!", icon="🛡️")
+                    elif "exception" in val_s:
+                        st.toast("📋 Report Generated with Authorized Managerial Exceptions", icon="✅")
                 elif interrupted_state is not None:
                     state_values = interrupted_state.values
                     tasks = interrupted_state.tasks
@@ -1201,8 +1304,15 @@ with nav_tab1:
                 )
             elif "clear" in val_status.lower():
                 st.markdown(
-                    '<div class="badge-clear" style="font-size:0.95rem; padding:6px 14px; margin-bottom:1rem;">'
-                    '✅ VALIDATION STATUS: VERIFIED & CLEAR (ZERO OUTSTANDING ISSUES)'
+                    '<div class="clean-audit-banner">'
+                    '<div style="font-size:1.8rem;">✨</div>'
+                    '<div>'
+                    '<div class="clean-audit-banner-title">Perfect Audit Clean Sheet &bull; 100% Policy Compliant</div>'
+                    '<div class="clean-audit-banner-sub">All transactions strictly conform to corporate expense limits, valid receipt documentation, and mathematical consistency.</div>'
+                    '</div>'
+                    '<div style="margin-left:auto;">'
+                    '<span class="badge-clear">VERIFIED & CLEAR</span>'
+                    '</div>'
                     '</div>',
                     unsafe_allow_html=True,
                 )
@@ -1360,6 +1470,7 @@ with nav_tab1:
             em_status = st.session_state.get("email_status")
             if em_status:
                 if em_status.get("success"):
+                    st.toast("📨 Executive expense report dispatched successfully!", icon="🚀")
                     if em_status.get("simulated"):
                         st.info(f"ℹ️ {em_status['message']}")
                     else:
@@ -1408,7 +1519,18 @@ with nav_tab2:
         st.warning(f"Could not load report history: {e}")
 
     if not history_runs:
-        st.info("ℹ️ No historical report runs recorded for this dataset yet. Generate your first report in the Executive Workspace tab to see records archived here.")
+        st.markdown("""
+        <div class="fin-card" style="text-align:center; padding:2.5rem 1.5rem; background:#f8fafc; border-style:dashed;">
+            <div style="font-size:2.2rem; margin-bottom:0.6rem;">📜</div>
+            <div style="font-size:1.1rem; font-weight:700; color:#1a237e; margin-bottom:0.3rem;">No Historical Runs Recorded for Active Dataset</div>
+            <div style="font-size:0.88rem; color:#64748b; max-width:500px; margin:0 auto 0.75rem auto; line-height:1.5;">
+                Every report you execute archives an immutable audit record with full filter parameters, deterministic financial totals, and vector PDF download link.
+            </div>
+            <div style="font-size:0.8rem; color:#94a3b8;">
+                💡 <em>Tip: Return to the Executive Workspace tab to run your first report.</em>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         # History Statistics Ribbon
         h_total = len(history_runs)
@@ -1482,6 +1604,7 @@ with nav_tab2:
                 with col_btn1:
                     if st.button(f"📋 Load Prompt", key=f"load_{rep_id}"):
                         st.session_state["prompt_input"] = req_text
+                        st.toast("📋 Loaded prompt into Executive Workspace!", icon="⚡")
                         st.success(f"Loaded prompt into workspace! Switch to the Executive Workspace tab to run.")
                 with col_btn2:
                     if st.button(f"▶️ Run Again", key=f"rerun_{rep_id}"):
@@ -1684,10 +1807,15 @@ with nav_tab4:
 
     if not open_issues:
         st.markdown("""
-        <div class="fin-card" style="text-align:center; padding:2rem;">
-            <div style="font-size:2rem; margin-bottom:0.5rem;">🎉</div>
-            <div style="font-size:1.1rem; font-weight:700; color:#059669;">Zero Unresolved Compliance Issues</div>
-            <div style="font-size:0.88rem; color:#64748b; margin-top:0.3rem;">All audited transactions are fully compliant or resolved with documented managerial exceptions.</div>
+        <div class="clean-audit-banner" style="padding:1.4rem 1.6rem;">
+            <div style="font-size:2rem;">🛡️</div>
+            <div>
+                <div class="clean-audit-banner-title" style="font-size:1.05rem; margin-bottom:0.25rem;">Zero Open Compliance Discrepancy Items</div>
+                <div class="clean-audit-banner-sub" style="font-size:0.85rem;">All transactions in the active dataset are fully verified or covered by authorized managerial exceptions. Database integrity is verified.</div>
+            </div>
+            <div style="margin-left:auto;">
+                <span class="badge-clear">100% COMPLIANT</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -1744,6 +1872,7 @@ with nav_tab4:
                         )
                     # Invalidate session cached expense list so Tab 1 loads fresh database records
                     st.session_state["custom_expenses_list"] = None
+                    st.toast("⚖️ Auditor resolution permanently recorded to SQLite memory", icon="🔒")
                     st.success(f"✓ Recorded decision for {issue_id_target}: '{sel_label}'. Persistent memory updated — this decision will be remembered and the workflow will proceed without stopping for review.")
                     st.rerun()
                 except Exception as ex:

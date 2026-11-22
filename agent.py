@@ -50,6 +50,7 @@ from tools.memory_tools import (
     resolve_validation_issue,
     apply_reviewer_decision,
     save_report_run,
+    get_dataset,
 )
 
 
@@ -553,12 +554,14 @@ def expense_analysis_agent_node(state: AgentState) -> dict:
         if state.get("expenses") and len(state.get("expenses")) > 0:
             raw_expenses = state["expenses"]
             data_source = state.get("data_source", "interactive_editor")
+            ds_info = get_dataset(dataset_id) if dataset_id else None
+            src_name = ds_info["name"] if ds_info else "active_session"
             # Persist to SQLite memory scoped to active dataset
             save_res = save_expenses(
                 raw_expenses,
                 dataset_id=dataset_id,
                 dataset_version=dataset_version,
-                source_name="active_session",
+                source_name=src_name,
             )
             raw_expenses = save_res["records"]
             if not dataset_id:
