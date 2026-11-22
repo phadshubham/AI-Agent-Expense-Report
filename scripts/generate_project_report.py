@@ -89,13 +89,6 @@ class NumberedCanvas(canvas.Canvas):
         self.setLineWidth(0.6)
         self.line(MARGIN_X, PAGE_HEIGHT - 32, PAGE_WIDTH - MARGIN_X, PAGE_HEIGHT - 32)
 
-        # Running Bottom Footer
-        footer_left = "Presented by: Kaustubh M. (ADT23SOCB0510), Paras S. (ADT23SOCB0692), Shubham P. (ADT23SOCB1106), Shubham M. (ADT23SOCB1110)"
-        footer_right = "Guide: Prof Swapnili Karmore"
-        self.line(MARGIN_X, 28, PAGE_WIDTH - MARGIN_X, 28)
-        self.drawString(MARGIN_X, 18, footer_left)
-        self.drawRightString(PAGE_WIDTH - MARGIN_X, 18, footer_right)
-
         self.restoreState()
 
 
