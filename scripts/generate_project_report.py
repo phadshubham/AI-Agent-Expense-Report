@@ -238,15 +238,7 @@ def build_pdf():
             )
         ],
         [Paragraph("Guide", table_cell_bold), Paragraph("<b>Prof Swapnili Karmore</b>", table_cell)],
-        [Paragraph("Live app URL", table_cell_bold), Paragraph("http://localhost:8501 (Streamlit FinTech Application Workspace)", table_cell)],
         [Paragraph("GitHub repo", table_cell_bold), Paragraph("https://github.com/phadshubham/AI-Agent-Expense-Report.git", table_cell)],
-        [Paragraph("Multi-Agent Framework", table_cell_bold), Paragraph("LangGraph 0.2+ StateGraph with SQLiteSaver Checkpointer & Human-in-the-Loop Interrupts", table_cell)],
-        [Paragraph("Underlying LLM Engine", table_cell_bold), Paragraph("Ollama Qwen 3 (Local Autonomous Reasoning) + Fallback Deterministic Regex Engine", table_cell)],
-        [Paragraph("Persistent Storage Layer", table_cell_bold), Paragraph("Two-Tier SQLite: <code>expense_memory.db</code> (Domain Memory) + <code>agent_state.db</code> (Thread Checkpoints)", table_cell)],
-        [Paragraph("Mathematical Core", table_cell_bold), Paragraph("Deterministic Vectorized Pandas Engine (Zero Generative Arithmetic Hallucination)", table_cell)],
-        [Paragraph("Document Vector Engine", table_cell_bold), Paragraph("ReportLab Flowable Vector Engine with Cryptographic Audit Badges", table_cell)],
-        [Paragraph("Email Dispatch Service", table_cell_bold), Paragraph("Resend Transactional API + Autonomous Executive Draft Generator", table_cell)],
-        [Paragraph("Automated Verification Suite", table_cell_bold), Paragraph("<b>324 Tests Passed</b> across SQLite Storage, PDF Integrity, Multi-Agent Orchestration & HITL", table_cell)],
         [Paragraph("Submission date", table_cell_bold), Paragraph("November 2026", table_cell)]
     ]
     meta_table = Table(meta_data, colWidths=[125, USABLE_WIDTH - 125])
@@ -256,12 +248,57 @@ def build_pdf():
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, C_BORDER),
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, C_BG_LIGHT]),
-        ('TOPPADDING', (0,0), (-1,-1), 3.8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3.8),
+        ('TOPPADDING', (0,0), (-1,-1), 4.2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4.2),
         ('LEFTPADDING', (0,0), (-1,-1), 7),
         ('RIGHTPADDING', (0,0), (-1,-1), 7),
     ]))
     story.append(meta_table)
+    story.append(Spacer(1, 10))
+
+    # Core System Modules and Features Added (One-sentence headers only, no description)
+    story.append(Paragraph("Key System Modules & Functional Capabilities Added", h2_style))
+    features_data = [
+        [
+            Paragraph("Core Technical Capability (Subsystem)", table_header),
+            Paragraph("Architectural Implementation (Module)", table_header)
+        ],
+        [
+            Paragraph("• Three-Agent LangGraph Collaboration Pipeline", table_cell_bold),
+            Paragraph("• State-Preserving Human-in-the-Loop Review Console", table_cell_bold)
+        ],
+        [
+            Paragraph("• Persistent SQLite Two-Tier Memory Architecture", table_cell_bold),
+            Paragraph("• Direct Compliance Auditor Resolution & Overrides", table_cell_bold)
+        ],
+        [
+            Paragraph("• Cryptographic SHA-256 Multi-Dataset Isolation", table_cell_bold),
+            Paragraph("• Autonomous LLM Executive Email Dispatch Service", table_cell_bold)
+        ],
+        [
+            Paragraph("• Deterministic Vectorized Pandas Mathematical Guard", table_cell_bold),
+            Paragraph("• Publication-Grade Vector PDF Engine with Audit Badges", table_cell_bold)
+        ],
+        [
+            Paragraph("• Interactive Source-of-Truth Expense Table Editor", table_cell_bold),
+            Paragraph("• Natural-Language Prompt Parser & Dynamic Entity Matcher", table_cell_bold)
+        ],
+        [
+            Paragraph("• Real-Time Health & Financial Diagnostics Ribbon", table_cell_bold),
+            Paragraph("• 324-Test Automated Comprehensive Verification Suite", table_cell_bold)
+        ]
+    ]
+    feat_table = Table(features_data, colWidths=[USABLE_WIDTH/2, USABLE_WIDTH/2])
+    feat_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), C_PRIMARY),
+        ('GRID', (0,0), (-1,-1), 0.5, C_BORDER),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, C_BG_LIGHT]),
+        ('TOPPADDING', (0,0), (-1,-1), 4.2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4.2),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(feat_table)
 
     story.append(PageBreak())
 
